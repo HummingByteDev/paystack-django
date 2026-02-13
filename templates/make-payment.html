@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+
+
+
+<div class="container">
+    <div class="d-flex justify-content-center align-items-center mt-3">
+        <h3>Make payment for NGN{{payment.amount}} </h3>
+        <form id="paymentForm">
+            <button type='submit' class="btn btn-success btn-large ml-2" onclick="payWithPaystack()"> Make
+                Payment
+            </button>
+        </form>
+        <script src="https://js.paystack.co/v1/inline.js"></script>
+
+    </div>
+</div>
+
+
+<script>
+    const paymentForm = document.getElementById('paymentForm');
+    paymentForm.addEventListener("submit", payWithPaystack, false);
+
+    function payWithPaystack(e) {
+        e.preventDefault();
+        let handler = PaystackPop.setup({
+            key: "{{ paystack_public_key }}",
+            ref: "{{ payment.ref }}",
+            email: "{{ payment.email }}",
+            amount: " {{ payment.amount }} ",
+            callback: function (response) {
+                window.location.href = "{% url 'verify-payment' payment.ref %}"
+            },
+            onClose: function () {
+                alert('Window closed.');
+            },
+        });
+        handler.openIframe();
+    }
+</script>
+
+
+{% endblock content %}
