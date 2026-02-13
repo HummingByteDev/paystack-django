@@ -1,0 +1,132 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paystack-django"
+version = "1.0.0"
+description = "A comprehensive Django integration for Paystack Payment Gateway"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Humming Byte", email = "dev@hummingbyte.org" }]
+keywords = [
+    "django",
+    "paystack",
+    "payment",
+    "payment-gateway",
+    "nigerian-payment",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 3.2",
+    "Framework :: Django :: 4.0",
+    "Framework :: Django :: 4.1",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "Django>=3.2",
+    "requests>=2.25.0",
+    "urllib3>=1.26.0",
+    "python-decouple>=3.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-django>=4.5",
+    "pytest-cov>=3.0",
+    "black>=22.0",
+    "flake8>=4.0",
+    "isort>=5.10",
+    "mypy>=0.950",
+    "django-stubs>=1.12.0",
+    "tox>=3.24",
+]
+
+docs = [
+    "sphinx>=4.5",
+    "sphinx-rtd-theme>=1.0",
+    "sphinx-autodoc-typehints>=1.18",
+]
+
+[project.urls]
+Homepage = "https://github.com/HummingByteDev/paystack-django"
+Documentation = "https://django-paystack.readthedocs.io"
+Repository = "https://github.com/HummingByteDev/paystack-django.git"
+"Bug Tracker" = "https://github.com/HummingByteDev/paystack-django/issues"
+Changelog = "https://github.com/HummingByteDev/paystack-django/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+packages = ["djpaystack"]
+
+[tool.setuptools.package-data]
+djpaystack = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = ["migrations", ".venv"]
+known_django = ["django"]
+sections = [
+    "FUTURE",
+    "STDLIB",
+    "DJANGO",
+    "THIRDPARTY",
+    "FIRSTPARTY",
+    "LOCALFOLDER",
+]
+
+[tool.mypy]
+python_version = "3.8"
+check_untyped_defs = true
+ignore_missing_imports = true
+plugins = ["mypy_django_plugin.main"]
+exclude = ["migrations/", ".venv/"]
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "--cov=djpaystack --cov-report=term-missing --cov-report=html"
+testpaths = ["djpaystack/tests"]

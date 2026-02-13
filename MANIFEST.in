@@ -1,0 +1,16 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+recursive-include djpaystack *.py
+recursive-include djpaystack *.html
+recursive-include djpaystack *.txt
+recursive-include djpaystack *.yml
+recursive-include djpaystack *.yaml
+recursive-include djpaystack *.json
+exclude djpaystack/__pycache__
+exclude djpaystack/*/__pycache__
+exclude djpaystack/*/*/__pycache__
+recursive-exclude * __pycache__
+recursive-exclude * *.py[cod]
+recursive-exclude * *.so

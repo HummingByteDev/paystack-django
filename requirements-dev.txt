@@ -1,0 +1,46 @@
+# Development and testing dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Core dependencies
+-e .
+
+# Testing
+pytest>=7.0
+pytest-django>=4.5
+pytest-cov>=3.0
+coverage>=6.0
+
+# Code Quality
+black>=22.0
+flake8>=4.0
+flake8-bugbear>=22.0
+isort>=5.10
+mypy>=0.950
+django-stubs>=1.12.0
+
+# Type checking
+types-requests>=2.25.0
+
+# Build and Distribution
+build>=0.8.0
+twine>=3.4.0
+wheel>=0.37.0
+
+# Documentation
+sphinx>=4.5
+sphinx-rtd-theme>=1.0
+sphinx-autodoc-typehints>=1.18
+
+# Testing across versions
+tox>=3.24
+
+# Development utilities
+ipython>=8.0
+ipdb>=0.13.0
+django-extensions>=3.1
+
+# Performance
+django-debug-toolbar>=3.0
+
+# Utilities
+python-decouple>=3.5
