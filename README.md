@@ -9,15 +9,15 @@ A comprehensive Django integration for the **Paystack Payment Gateway**. This pa
 
 ## Features
 
-- ✅ **Complete Paystack API Integration** - Access all Paystack endpoints
-- ✅ **Django Models** - Pre-built models for transactions, customers, plans, and more
-- ✅ **Webhook Support** - Built-in webhook handling and verification
-- ✅ **Signal Support** - Django signals for payment events
-- ✅ **Async Ready** - Supports async operations
-- ✅ **Type Hints** - Fully typed for better IDE support
-- ✅ **Comprehensive Documentation** - Detailed docs and examples
-- ✅ **Test Coverage** - Extensive test suite
-- ✅ **Production Ready** - Used in production by multiple companies
+- **Complete Paystack API Integration** - Access all Paystack endpoints
+- **Django Models** - Pre-built models for transactions, customers, plans, and more
+- **Webhook Support** - Built-in webhook handling and verification
+- **Signal Support** - Django signals for payment events
+- **Async Ready** - Supports async operations
+- **Type Hints** - Fully typed for better IDE support
+- **Comprehensive Documentation** - Detailed docs and examples
+- **Test Coverage** - Extensive test suite
+- **Production Ready** - Used in production by multiple companies
 
 ## Supported Services
 
