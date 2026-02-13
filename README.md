@@ -485,7 +485,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for deta
 
 ## Support
 
-- 📚 [Full Documentation](https://django-paystack.readthedocs.io)
+- 📚 [Full Documentation](https://paystack-django.readthedocs.io/)
 - 🐛 [Report Issues](https://github.com/HummingByteDev/paystack-django/issues)
 - 💬 [Discussions](https://github.com/HummingByteDev/paystack-django/discussions)
 - 📧 [Email Support](mailto:dev@hummingbyte.org)

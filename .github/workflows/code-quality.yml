@@ -11,12 +11,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -25,23 +27,17 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          # stop the build if there are Python syntax errors or undefined names
           flake8 djpaystack --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings
-          flake8 djpaystack --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+          flake8 djpaystack --count --max-complexity=10 --max-line-length=100 --statistics
 
-      - name: Format checking with Black
+      - name: Check formatting (black)
         run: black --check djpaystack
 
-      - name: Import sorting with isort
+      - name: Check import sorting (isort)
         run: isort --check-only djpaystack
 
-      - name: Type checking with mypy
+      - name: Type checking (mypy strict)
         run: mypy djpaystack --ignore-missing-imports --strict
-        continue-on-error: true
 
-      - name: Security check with bandit
-        run: |
-          pip install bandit
-          bandit -r djpaystack -ll
-        continue-on-error: true
+      - name: Security scan (bandit)
+        run: bandit -r djpaystack -ll

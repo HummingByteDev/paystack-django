@@ -140,7 +140,7 @@ Resources
 Support
 =======
 
-- 📚 `Full Documentation <https://django-paystack.readthedocs.io>`_
+- 📚 `Full Documentation <https://paystack-django.readthedocs.io/>`_
 - 🐛 `Report Issues on GitHub <https://github.com/HummingByteDev/paystack-django/issues>`_
 - 💬 `Join Discussions <https://github.com/HummingByteDev/paystack-django/discussions>`_
 - 📧 `Email Support <dev@hummingbyte.org>`_
