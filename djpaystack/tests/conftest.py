@@ -6,29 +6,31 @@ from django.conf import settings
 
 def pytest_configure():
     """Configure Django for pytest"""
-    settings.configure(
-        SECRET_KEY='test-secret-key',
-        INSTALLED_APPS=[
-            'django.contrib.contenttypes',
-            'django.contrib.auth',
-            'djpaystack',
-        ],
-        DATABASES={
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:',
-            }
-        },
-        PAYSTACK={
-            'SECRET_KEY': 'sk_test_xxxxx',
-            'WEBHOOK_SECRET': 'test_webhook_secret',
-            'ENVIRONMENT': 'test',
-            'ENABLE_MODELS': True,
-            'ENABLE_SIGNALS': True,
-        },
-        USE_TZ=True,
-    )
-    django.setup()
+    # Only configure Django here when pytest-django hasn't already set DJANGO_SETTINGS_MODULE
+    if not settings.configured:
+        settings.configure(
+            SECRET_KEY='test-secret-key',
+            INSTALLED_APPS=[
+                'django.contrib.contenttypes',
+                'django.contrib.auth',
+                'djpaystack',
+            ],
+            DATABASES={
+                'default': {
+                    'ENGINE': 'django.db.backends.sqlite3',
+                    'NAME': ':memory:',
+                }
+            },
+            PAYSTACK={
+                'SECRET_KEY': 'sk_test_xxxxx',
+                'WEBHOOK_SECRET': 'test_webhook_secret',
+                'ENVIRONMENT': 'test',
+                'ENABLE_MODELS': True,
+                'ENABLE_SIGNALS': True,
+            },
+            USE_TZ=True,
+        )
+        django.setup()
 
 
 @pytest.fixture

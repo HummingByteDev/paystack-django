@@ -1,6 +1,7 @@
 """
 Configuration settings for paystack-django
 """
+from typing import Any, Dict, Optional
 from django.conf import settings
 from .exceptions import PaystackConfigurationError
 
@@ -10,7 +11,7 @@ class PaystackSettings:
     Central configuration manager for Paystack settings
     """
 
-    DEFAULTS = {
+    DEFAULTS: Dict[str, Any] = {
         'SECRET_KEY': None,
         'PUBLIC_KEY': None,
         'BASE_URL': 'https://api.paystack.co',
@@ -30,10 +31,10 @@ class PaystackSettings:
         'ALLOWED_WEBHOOK_IPS': [],
     }
 
-    def __init__(self):
-        self._settings = None
+    def __init__(self) -> None:
+        self._settings: Optional[Dict[str, Any]] = None
 
-    def _load_settings(self):
+    def _load_settings(self) -> None:
         """Load settings from Django settings"""
         if self._settings is not None:
             return
@@ -47,19 +48,21 @@ class PaystackSettings:
                 "PAYSTACK['SECRET_KEY'] is required in Django settings"
             )
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         self._load_settings()
+        assert self._settings is not None
         if name in self._settings:
             return self._settings[name]
         raise AttributeError(
             f"'{self.__class__.__name__}' has no attribute '{name}'")
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         """Get a setting value with optional default"""
         self._load_settings()
-        return self._settings.get(key, default)
+        assert self._settings is not None
+        return self._settings.get(key, default)  # type: ignore[return-value]
 
-    def reload(self):
+    def reload(self) -> None:
         """Reload settings from Django settings"""
         self._settings = None
         self._load_settings()

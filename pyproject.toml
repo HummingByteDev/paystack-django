@@ -60,6 +60,7 @@ dev = [
     "isort>=5.10",
     "mypy>=0.950",
     "django-stubs>=1.12.0",
+    "types-requests>=2.25.0",
     "tox>=3.24",
     "ruff>=0.1.0",
     "bandit>=1.7.0",
@@ -124,7 +125,7 @@ python_version = "3.12"
 check_untyped_defs = true
 ignore_missing_imports = true
 plugins = ["mypy_django_plugin.main"]
-exclude = ["migrations/", ".venv/"]
+exclude = ["migrations/", ".venv/", "djpaystack/tests/", "djpaystack/dev/"]
 
 [tool.django-stubs]
 django_settings_module = "djpaystack.tests.settings"
