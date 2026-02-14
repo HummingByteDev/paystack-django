@@ -14,7 +14,7 @@ class TestPaystackClient:
 
     def test_client_initialization(self):
         """Test client initialization"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = 'sk_test_xxxxx'
             mock_settings.BASE_URL = 'https://api.paystack.co'
             mock_settings.TIMEOUT = 30
@@ -28,7 +28,7 @@ class TestPaystackClient:
 
     def test_client_initialization_without_secret_key(self):
         """Test client initialization fails without secret key"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = None
 
             with pytest.raises(PaystackAuthenticationError):
@@ -36,7 +36,7 @@ class TestPaystackClient:
 
     def test_client_custom_secret_key(self):
         """Test client with custom secret key"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = 'sk_test_default'
             mock_settings.BASE_URL = 'https://api.paystack.co'
             mock_settings.TIMEOUT = 30
@@ -46,7 +46,7 @@ class TestPaystackClient:
 
     def test_get_headers(self):
         """Test request headers"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = 'sk_test_xxxxx'
             mock_settings.BASE_URL = 'https://api.paystack.co'
             mock_settings.TIMEOUT = 30
@@ -60,7 +60,7 @@ class TestPaystackClient:
 
     def test_successful_request(self, mock_paystack_response):
         """Test successful API request"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = 'sk_test_xxxxx'
             mock_settings.BASE_URL = 'https://api.paystack.co'
             mock_settings.TIMEOUT = 30
@@ -83,7 +83,7 @@ class TestPaystackClient:
 
     def test_failed_request(self):
         """Test failed API request"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = 'sk_test_xxxxx'
             mock_settings.BASE_URL = 'https://api.paystack.co'
             mock_settings.TIMEOUT = 30
@@ -111,7 +111,7 @@ class TestPaystackClient:
         """Test network error handling"""
         import requests
 
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = 'sk_test_xxxxx'
             mock_settings.BASE_URL = 'https://api.paystack.co'
             mock_settings.TIMEOUT = 30

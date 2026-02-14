@@ -10,7 +10,7 @@ class TestCustomerAPI:
     @pytest.fixture
     def client(self):
         """Create test client"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.client.paystack_settings') as mock_settings:
             mock_settings.SECRET_KEY = 'sk_test_xxxxx'
             mock_settings.BASE_URL = 'https://api.paystack.co'
             mock_settings.TIMEOUT = 30

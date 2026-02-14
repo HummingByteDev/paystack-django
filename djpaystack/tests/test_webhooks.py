@@ -6,6 +6,7 @@ from django.test import TestCase, RequestFactory
 from djpaystack.webhooks.handlers import webhook_handler
 from djpaystack.webhooks.events import WebhookEvent
 from djpaystack.webhooks.views import PaystackWebhookView
+
 from unittest.mock import patch
 
 
@@ -27,7 +28,7 @@ class TestWebhookHandler(TestCase):
             hashlib.sha512
         ).hexdigest()
 
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.webhooks.handlers.paystack_settings') as mock_settings:
             mock_settings.WEBHOOK_SECRET = secret
 
             result = self.handler.verify_signature(payload, signature)
@@ -39,25 +40,43 @@ class TestWebhookHandler(TestCase):
         secret = 'test_secret'
         invalid_signature = 'invalid_signature'
 
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.webhooks.handlers.paystack_settings') as mock_settings:
             mock_settings.WEBHOOK_SECRET = secret
 
             result = self.handler.verify_signature(payload, invalid_signature)
             assert result is False
 
-    def test_event_handling(self, mock_transaction_data):
+    def test_event_handling(self):
         """Test event handling"""
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        data = {
+            'reference': 'test_ref_123',
+            'amount': 50000,
+            'currency': 'NGN',
+            'status': 'success',
+            'customer': {
+                'email': 'test@example.com',
+                'customer_code': 'CUS_xxxxx'
+            },
+            'authorization': {
+                'authorization_code': 'AUTH_xxxxx'
+            },
+            'channel': 'card',
+            'fees': 750,
+            'paid_at': '2024-01-15T12:00:00.000Z',
+            'metadata': {}
+        }
+
+        with patch('djpaystack.webhooks.handlers.paystack_settings') as mock_settings:
             mock_settings.ENABLE_MODELS = False
             mock_settings.ENABLE_SIGNALS = False
 
             result = self.handler.handle_event(
                 WebhookEvent.CHARGE_SUCCESS,
-                mock_transaction_data
+                data
             )
 
-            # Should not raise exception
-            assert result is not None
+            # Should not raise exception (handlers return None by design)
+            assert result is None
 
     def test_duplicate_event_detection(self):
         """Test duplicate event detection"""
@@ -92,8 +111,26 @@ class TestWebhookView(TestCase):
         response = self.view(request)
         assert response.status_code == 400
 
-    def test_valid_webhook_request(self, mock_transaction_data):
+    def test_valid_webhook_request(self):
         """Test valid webhook request"""
+        mock_transaction_data = {
+            'reference': 'test_ref_123',
+            'amount': 50000,
+            'currency': 'NGN',
+            'status': 'success',
+            'customer': {
+                'email': 'test@example.com',
+                'customer_code': 'CUS_xxxxx'
+            },
+            'authorization': {
+                'authorization_code': 'AUTH_xxxxx'
+            },
+            'channel': 'card',
+            'fees': 750,
+            'paid_at': '2024-01-15T12:00:00.000Z',
+            'metadata': {}
+        }
+
         payload = {
             'event': 'charge.success',
             'data': mock_transaction_data
@@ -115,7 +152,7 @@ class TestWebhookView(TestCase):
             HTTP_X_PAYSTACK_SIGNATURE=signature
         )
 
-        with patch('djpaystack.settings.paystack_settings') as mock_settings:
+        with patch('djpaystack.webhooks.views.paystack_settings') as mock_settings:
             mock_settings.WEBHOOK_SECRET = secret
             mock_settings.ENABLE_MODELS = False
             mock_settings.ENABLE_SIGNALS = False
