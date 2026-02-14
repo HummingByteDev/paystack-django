@@ -24,45 +24,35 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -e ".[dev]"
-          # Explicitly install missing tools (remove once added to pyproject.toml [dev])
-          pip install ruff mypy flake8 bandit
+          # Ensure the package itself is importable (fixes mypy django init)
+          pip install -e .
 
-      - name: Lint with flake8 (non-blocking)
+      - name: Lint with flake8 (warnings only)
         continue-on-error: true
         run: |
-          echo "Running flake8 (warnings only - will not fail the job)"
-          flake8 djpaystack \
-            --count \
-            --select=E9,F63,F7,F82 \
-            --show-source \
-            --statistics || true
+          echo "flake8 - critical syntax only (fails job if found)"
+          flake8 djpaystack --count --select=E9,F63,F7,F82 --show-source --statistics || { echo "Critical flake8 issues found!"; exit 1; }
 
-          flake8 djpaystack \
-            --count \
-            --exit-zero \
-            --max-complexity=10 \
-            --max-line-length=100 \
-            --statistics || true
+          echo "flake8 - style & warnings (always continue)"
+          flake8 djpaystack --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics || true
 
-      - name: Format check with Black (non-blocking)
+      - name: Format check with Black (warnings only)
         continue-on-error: true
         run: black --check --diff djpaystack || true
 
-      - name: Import sort check with isort (non-blocking)
+      - name: Import sort check with isort (warnings only)
         continue-on-error: true
         run: isort --check-only --diff djpaystack || true
 
       - name: Type check with mypy
         run: mypy djpaystack --strict --ignore-missing-imports
-        # Keep blocking — type errors often hide real bugs
+        # No continue-on-error → fail on real type problems
 
-      - name: Security scan with Bandit (non-blocking)
+      - name: Security check with Bandit (warnings only)
         continue-on-error: true
         run: bandit -r djpaystack -ll -ii || true
 
-      # Optional: Ruff-based lint (once Ruff is configured properly)
-      # - name: Ruff lint + format check (non-blocking variant)
+      # Bonus: Ruff variant (once you migrate – much faster & combines most tools)
+      # - name: Ruff check (non-blocking)
       #   continue-on-error: true
-      #   run: |
-      #     ruff check --output-format=github djpaystack || true
-      #     ruff format --check djpaystack || true
+      #   run: ruff check --output-format=github djpaystack || true

@@ -120,7 +120,7 @@ sections = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.12"
 check_untyped_defs = true
 ignore_missing_imports = true
 plugins = ["mypy_django_plugin.main"]
