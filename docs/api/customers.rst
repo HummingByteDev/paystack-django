@@ -8,30 +8,18 @@ Customers API
    :undoc-members:
    :show-inheritance:
 
-Example Usage
--------------
+Quick Reference
+---------------
 
 .. code-block:: python
 
-    from djpaystack.api.customers import Customer
+    from djpaystack import PaystackClient
+    client = PaystackClient()
 
-    customer = Customer()
-    
-    # Create
-    response = customer.create(
-        email='customer@example.com',
-        first_name='John',
-        last_name='Doe'
-    )
-    
-    # List
-    response = customer.list()
-    
-    # Fetch
-    response = customer.fetch(customer_id=123)
-    
-    # Update
-    response = customer.update(
-        code='CUST_123',
-        first_name='Jane'
-    )
+    client.customers.create(email=..., first_name=..., last_name=..., phone=...)
+    client.customers.list(page=1, per_page=50)
+    client.customers.fetch(email_or_code=...)
+    client.customers.update(code=..., first_name=...)
+    client.customers.validate(code=..., first_name=..., last_name=..., type=..., value=..., country=...)
+    client.customers.set_risk_action(customer=..., risk_action='allow')  # or 'deny'
+    client.customers.deactivate_authorization(authorization_code=...)

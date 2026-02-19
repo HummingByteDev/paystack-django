@@ -10,12 +10,10 @@ from .exceptions import (
     PaystackNetworkError,
 )
 from .client import PaystackClient
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 __author__ = 'Humming Byte'
 __email__ = 'dev@hummingbyte.org'
 __license__ = 'MIT'
-
-default_app_config = 'djpaystack.apps.DjPaystackConfig'
 
 
 __all__ = [

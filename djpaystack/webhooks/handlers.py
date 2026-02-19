@@ -1,12 +1,11 @@
 
-import hashlib
-import hmac
 import logging
+from collections import OrderedDict
 from typing import Dict, Any, Callable, Optional
-from django.conf import settings
 
 from ..settings import paystack_settings
 from ..exceptions import PaystackWebhookError
+from ..utils import verify_webhook_signature
 from .events import WebhookEvent, WebhookEventData
 from ..signals import (
     paystack_payment_successful,
@@ -46,7 +45,7 @@ class WebhookHandler:
     def __init__(self):
         self._handlers: Dict[str, Callable] = {}
         self._register_default_handlers()
-        self._processed_events: set = set()  # For deduplication
+        self._processed_events: OrderedDict = OrderedDict()
 
     def _register_default_handlers(self):
         """Register default event handlers"""
@@ -55,28 +54,39 @@ class WebhookHandler:
         self.register(WebhookEvent.CHARGE_FAILED, self.handle_charge_failed)
 
         # Transfer events
-        self.register(WebhookEvent.TRANSFER_SUCCESS, self.handle_transfer_success)
-        self.register(WebhookEvent.TRANSFER_FAILED, self.handle_transfer_failed)
-        self.register(WebhookEvent.TRANSFER_REVERSED, self.handle_transfer_reversed)
+        self.register(WebhookEvent.TRANSFER_SUCCESS,
+                      self.handle_transfer_success)
+        self.register(WebhookEvent.TRANSFER_FAILED,
+                      self.handle_transfer_failed)
+        self.register(WebhookEvent.TRANSFER_REVERSED,
+                      self.handle_transfer_reversed)
 
         # Subscription events
-        self.register(WebhookEvent.SUBSCRIPTION_CREATE, self.handle_subscription_create)
-        self.register(WebhookEvent.SUBSCRIPTION_DISABLE, self.handle_subscription_disable)
-        self.register(WebhookEvent.SUBSCRIPTION_NOT_RENEW, self.handle_subscription_not_renew)
+        self.register(WebhookEvent.SUBSCRIPTION_CREATE,
+                      self.handle_subscription_create)
+        self.register(WebhookEvent.SUBSCRIPTION_DISABLE,
+                      self.handle_subscription_disable)
+        self.register(WebhookEvent.SUBSCRIPTION_NOT_RENEW,
+                      self.handle_subscription_not_renew)
 
         # Refund events
-        self.register(WebhookEvent.REFUND_PROCESSED, self.handle_refund_processed)
+        self.register(WebhookEvent.REFUND_PROCESSED,
+                      self.handle_refund_processed)
 
         # Dispute events
-        self.register(WebhookEvent.DISPUTE_CREATE, self.handle_dispute_create)
-        self.register(WebhookEvent.DISPUTE_RESOLVE, self.handle_dispute_resolve)
+        self.register(WebhookEvent.CHARGE_DISPUTE_CREATE,
+                      self.handle_dispute_create)
+        self.register(WebhookEvent.CHARGE_DISPUTE_RESOLVE,
+                      self.handle_dispute_resolve)
 
         # Dedicated Account events
-        self.register(WebhookEvent.DEDICATEDACCOUNT_ASSIGN_SUCCESS, self.handle_dva_assign_success)
+        self.register(WebhookEvent.DEDICATEDACCOUNT_ASSIGN_SUCCESS,
+                      self.handle_dva_assign_success)
 
         # Invoice events
         self.register(WebhookEvent.INVOICE_CREATE, self.handle_invoice_create)
-        self.register(WebhookEvent.INVOICE_PAYMENT_FAILED, self.handle_invoice_failed)
+        self.register(WebhookEvent.INVOICE_PAYMENT_FAILED,
+                      self.handle_invoice_failed)
 
     def register(self, event_type: str, handler: Callable):
         """
@@ -87,7 +97,7 @@ class WebhookHandler:
             handler: Callable to handle the event
         """
         self._handlers[event_type] = handler
-        logger.info(f"Registered webhook handler for {event_type}")
+        logger.info("Registered webhook handler for %s", event_type)
 
     def verify_ip(self, ip_address: str) -> bool:
         """
@@ -107,7 +117,8 @@ class WebhookHandler:
 
         # If list is empty, allow all (not recommended for production)
         if not allowed_ips:
-            logger.warning("No webhook IP whitelist configured - allowing all IPs")
+            logger.warning(
+                "No webhook IP whitelist configured - allowing all IPs")
             return True
 
         return ip_address in allowed_ips
@@ -125,16 +136,13 @@ class WebhookHandler:
         """
         webhook_secret = paystack_settings.WEBHOOK_SECRET
         if not webhook_secret:
-            logger.warning("WEBHOOK_SECRET not configured, skipping signature verification")
-            return True
+            logger.error(
+                "WEBHOOK_SECRET not configured - rejecting webhook request. "
+                "Set PAYSTACK['WEBHOOK_SECRET'] in your Django settings."
+            )
+            return False
 
-        computed_signature = hmac.new(
-            webhook_secret.encode('utf-8'),
-            payload,
-            hashlib.sha512
-        ).hexdigest()
-
-        return hmac.compare_digest(computed_signature, signature)
+        return verify_webhook_signature(payload, signature, webhook_secret)
 
     def is_duplicate_event(self, event_id: str) -> bool:
         """
@@ -158,14 +166,11 @@ class WebhookHandler:
 
     def mark_event_processed(self, event_id: str):
         """Mark event as processed"""
-        self._processed_events.add(event_id)
+        self._processed_events[event_id] = True
 
-        # Limit in-memory set size (keep last 1000)
-        if len(self._processed_events) > 1000:
-            # Remove oldest half
-            to_remove = list(self._processed_events)[:500]
-            for item in to_remove:
-                self._processed_events.discard(item)
+        # Limit in-memory cache size (evict oldest entries)
+        while len(self._processed_events) > 1000:
+            self._processed_events.popitem(last=False)
 
     def handle_event(self, event_type: str, data: Dict[str, Any]) -> Any:
         """
@@ -183,7 +188,7 @@ class WebhookHandler:
         """
         # Validate event type
         if not WebhookEvent.is_valid(event_type):
-            logger.warning(f"Unknown webhook event type: {event_type}")
+            logger.warning("Unknown webhook event type: %s", event_type)
             return None
 
         # Create event data object
@@ -191,27 +196,31 @@ class WebhookHandler:
 
         # Check for duplicate
         if self.is_duplicate_event(event_data.event_id):
-            logger.info(f"Duplicate event detected: {event_data.event_id} - skipping")
+            logger.info("Duplicate event detected: %s - skipping",
+                        event_data.event_id)
             return {'status': 'duplicate', 'message': 'Event already processed'}
 
         handler = self._handlers.get(event_type)
 
         if not handler:
-            logger.warning(f"No handler registered for event type: {event_type}")
+            logger.warning(
+                "No handler registered for event type: %s", event_type)
             return None
 
         try:
-            logger.info(f"Processing webhook event: {event_type}")
+            logger.info("Processing webhook event: %s", event_type)
             result = handler(data)
 
             # Mark as processed
             self.mark_event_processed(event_data.event_id)
 
-            logger.info(f"Successfully processed webhook event: {event_type}")
+            logger.info("Successfully processed webhook event: %s", event_type)
             return result
         except Exception as e:
-            logger.error(f"Error handling webhook event {event_type}: {str(e)}", exc_info=True)
-            raise PaystackWebhookError(f"Failed to handle webhook event: {str(e)}")
+            logger.error("Error handling webhook event %s: %s",
+                         event_type, e, exc_info=True)
+            raise PaystackWebhookError(
+                f"Failed to handle webhook event: {str(e)}")
 
     # Default event handlers
 
@@ -421,15 +430,16 @@ class WebhookHandler:
 
     def handle_dva_assign_success(self, data: Dict[str, Any]):
         """Handle successful dedicated account assignment"""
-        logger.info(f"Dedicated account assigned: {data.get('account_number')}")
+        logger.info("Dedicated account assigned: %s",
+                    data.get('account_number'))
 
     def handle_invoice_create(self, data: Dict[str, Any]):
         """Handle invoice creation"""
-        logger.info(f"Invoice created: {data.get('reference')}")
+        logger.info("Invoice created: %s", data.get('reference'))
 
     def handle_invoice_failed(self, data: Dict[str, Any]):
         """Handle failed invoice payment"""
-        logger.warning(f"Invoice payment failed: {data.get('reference')}")
+        logger.warning("Invoice payment failed: %s", data.get('reference'))
 
 
 # Global webhook handler instance
