@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paystack-django"
-version = "1.1.0"
+version = "1.1.1"
 description = "A comprehensive Django integration for Paystack Payment Gateway"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -74,7 +74,7 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/HummingByteDev/paystack-django"
-Documentation = "https://django-paystack.readthedocs.io"
+Documentation = "https://paystack-django.readthedocs.io"
 Repository = "https://github.com/HummingByteDev/paystack-django.git"
 "Bug Tracker" = "https://github.com/HummingByteDev/paystack-django/issues"
 Changelog = "https://github.com/HummingByteDev/paystack-django/blob/main/CHANGELOG.md"

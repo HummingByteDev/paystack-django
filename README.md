@@ -328,7 +328,7 @@ pytest --cov=djpaystack
 
 ## Documentation
 
-Full documentation is available at [django-paystack.readthedocs.io](https://django-paystack.readthedocs.io/).
+Full documentation is available at [paystack-django.readthedocs.io](https://paystack-django.readthedocs.io/).
 
 ## Contributing
 
@@ -340,7 +340,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Links
 
-- [Full Documentation](https://django-paystack.readthedocs.io/)
+- [Full Documentation](https://paystack-django.readthedocs.io/)
 - [PyPI](https://pypi.org/project/paystack-django/)
 - [GitHub](https://github.com/HummingByteDev/paystack-django)
 - [Bug Tracker](https://github.com/HummingByteDev/paystack-django/issues)
