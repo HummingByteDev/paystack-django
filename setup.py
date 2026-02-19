@@ -8,9 +8,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="paystack-django",
-    version="1.0.0",
+    version="1.1.0",
     author="Humming Byte",
-    author_email="contact@hummingbyte.com",
+    author_email="dev@hummingbyte.org",
     description="A comprehensive Django integration for Paystack Payment Gateway",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -21,7 +21,6 @@ setup(
         "Django>=3.2",
         "requests>=2.25.0",
         "urllib3>=1.26.0",
-        "python-decouple>=3.5",
     ],
     extras_require={
         "dev": [

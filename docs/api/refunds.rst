@@ -8,24 +8,31 @@ Refunds API
    :undoc-members:
    :show-inheritance:
 
-Example Usage
--------------
+Quick Reference
+---------------
 
 .. code-block:: python
 
-    from djpaystack.api.refunds import Refund
+    from djpaystack import PaystackClient
+    client = PaystackClient()
 
-    refund = Refund()
-    
     # Create refund
-    response = refund.create(
-        transaction=transaction_id,
-        amount=50000,
-        notes='Customer requested refund'
-    )
-    
+    client.refunds.create(transaction='123456', amount=50000)
+
     # List refunds
-    response = refund.list()
-    
-    # Fetch specific refund
-    response = refund.fetch(refund_reference)
+    client.refunds.list(page=1, per_page=50)
+
+    # Fetch refund
+    client.refunds.fetch(reference='refund-ref')
+
+    # Retry a stuck refund (status = refund.needs-attention)
+    client.refunds.retry(id='123456')
+
+Webhook Events
+--------------
+
+- ``refund.pending`` — Refund initiated
+- ``refund.processing`` — Refund in progress
+- ``refund.processed`` — Refund completed
+- ``refund.failed`` — Refund failed
+- ``refund.needs-attention`` — Requires manual retry via ``retry()``

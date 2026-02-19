@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paystack-django"
-version = "1.0.0"
+version = "1.1.0"
 description = "A comprehensive Django integration for Paystack Payment Gateway"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -47,7 +47,6 @@ dependencies = [
     "Django>=3.2",
     "requests>=2.25.0",
     "urllib3>=1.26.0",
-    "python-decouple>=3.5",
 ]
 
 [project.optional-dependencies]
@@ -60,6 +59,7 @@ dev = [
     "isort>=5.10",
     "mypy>=0.950",
     "django-stubs>=1.12.0",
+    "types-requests>=2.25.0",
     "tox>=3.24",
     "ruff>=0.1.0",
     "bandit>=1.7.0",
@@ -79,8 +79,8 @@ Repository = "https://github.com/HummingByteDev/paystack-django.git"
 "Bug Tracker" = "https://github.com/HummingByteDev/paystack-django/issues"
 Changelog = "https://github.com/HummingByteDev/paystack-django/blob/main/CHANGELOG.md"
 
-[tool.setuptools]
-packages = ["djpaystack"]
+[tool.setuptools.packages.find]
+include = ["djpaystack*"]
 
 [tool.setuptools.package-data]
 djpaystack = ["py.typed"]
@@ -120,17 +120,17 @@ sections = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.12"
 check_untyped_defs = true
 ignore_missing_imports = true
 plugins = ["mypy_django_plugin.main"]
-exclude = ["migrations/", ".venv/"]
+exclude = ["migrations/", ".venv/", "djpaystack/tests/", "djpaystack/dev/"]
 
 [tool.django-stubs]
-django_settings_module = "tests.settings"
+django_settings_module = "djpaystack.tests.settings"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "tests.settings"
+DJANGO_SETTINGS_MODULE = "djpaystack.tests.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 addopts = "--cov=djpaystack --cov-report=term-missing --cov-report=html"
 testpaths = ["djpaystack/tests"]

@@ -25,6 +25,7 @@ class TransactionAPI(BaseAPI):
         metadata: Optional[Dict[str, Any]] = None,
         channels: Optional[List[str]] = None,
         split_code: Optional[str] = None,
+        split: Optional[Dict[str, Any]] = None,
         subaccount: Optional[str] = None,
         transaction_charge: Optional[int] = None,
         bearer: Optional[str] = None,
@@ -43,7 +44,10 @@ class TransactionAPI(BaseAPI):
             invoice_limit: Number of times to charge customer during subscription
             metadata: Additional transaction data
             channels: Payment channels to control (card, bank, ussd, qr, mobile_money, bank_transfer)
-            split_code: Transaction split code
+            split_code: Transaction split code (for pre-configured splits)
+            split: Dynamic split object with 'type', 'bearer_type', 'subaccounts'
+                   e.g. {"type": "flat", "bearer_type": "account",
+                   "subaccounts": [{"subaccount": "ACCT_xxx", "share": 6000}]}
             subaccount: Subaccount code
             transaction_charge: Amount to charge subaccount
             bearer: Who bears Paystack charges (account, subaccount)
@@ -62,6 +66,7 @@ class TransactionAPI(BaseAPI):
             metadata=metadata,
             channels=channels,
             split_code=split_code,
+            split=split,
             subaccount=subaccount,
             transaction_charge=transaction_charge,
             bearer=bearer,
@@ -140,14 +145,16 @@ class TransactionAPI(BaseAPI):
         transaction_charge: Optional[int] = None,
         bearer: Optional[str] = None,
         queue: Optional[bool] = None,
+        split_code: Optional[str] = None,
+        callback_url: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Charge an authorization
 
         Args:
-            authorization_code: Authorization code for card
-            email: Customer's email
+            authorization_code: Authorization code for card or direct debit
+            email: Customer's email (must match the email used to create the authorization)
             amount: Amount in kobo
             reference: Unique transaction reference
             currency: Currency code
@@ -157,6 +164,8 @@ class TransactionAPI(BaseAPI):
             transaction_charge: Amount to charge subaccount
             bearer: Who bears Paystack charges
             queue: Queue transaction for later processing
+            split_code: Transaction split code for multi-split payments
+            callback_url: URL to redirect if 2FA challenge is required
 
         Returns:
             Transaction response
@@ -173,6 +182,8 @@ class TransactionAPI(BaseAPI):
             transaction_charge=transaction_charge,
             bearer=bearer,
             queue=queue,
+            split_code=split_code,
+            callback_url=callback_url,
             **kwargs
         )
         return self._post('transaction/charge_authorization', data=data)

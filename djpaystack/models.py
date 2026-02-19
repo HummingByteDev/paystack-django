@@ -51,8 +51,6 @@ class PaystackTransaction(PaystackBaseModel):
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['reference']),
-            models.Index(fields=['status']),
             models.Index(fields=['customer_email']),
         ]
 

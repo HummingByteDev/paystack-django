@@ -24,6 +24,15 @@ class PaystackWebhookView(View):
     def post(self, request, *args, **kwargs):
         """Handle POST request from Paystack webhook"""
 
+        # Verify IP address
+        client_ip = self._get_client_ip(request)
+        if not webhook_handler.verify_ip(client_ip or ''):
+            logger.warning(
+                "Webhook request from unauthorized IP: %s", client_ip)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Unauthorized IP'}, status=403
+            )
+
         # Get signature header
         signature = request.headers.get('X-Paystack-Signature')
         if not signature:
@@ -61,7 +70,7 @@ class PaystackWebhookView(View):
                     user_agent=request.headers.get('User-Agent', ''),
                 )
             except Exception as e:
-                logger.error(f"Failed to store webhook event: {str(e)}")
+                logger.error("Failed to store webhook event: %s", e)
 
         # Handle event
         try:
@@ -74,7 +83,7 @@ class PaystackWebhookView(View):
             return JsonResponse({'status': 'success'})
 
         except PaystackWebhookError as e:
-            logger.error(f"Webhook handling error: {str(e)}")
+            logger.error("Webhook handling error: %s", e)
 
             if webhook_event:
                 webhook_event.processing_error = str(e)
@@ -89,3 +98,4 @@ class PaystackWebhookView(View):
             ip = x_forwarded_for.split(',')[0]
         else:
             ip = request.META.get('REMOTE_ADDR')
+        return ip

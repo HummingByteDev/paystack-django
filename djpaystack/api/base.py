@@ -1,7 +1,7 @@
 """
 Base API class for all Paystack API endpoints
 """
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 
 
 class BaseAPI:
@@ -22,17 +22,21 @@ class BaseAPI:
         """Make GET request"""
         return self.client.get(endpoint, params=params)
 
-    def _post(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Make POST request"""
+    def _post(
+        self,
+        endpoint: str,
+        data: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    ) -> Dict[str, Any]:
+        """Make POST request (accepts single dict or list for bulk endpoints)"""
         return self.client.post(endpoint, data=data)
 
     def _put(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Make PUT request"""
         return self.client.put(endpoint, data=data)
 
-    def _delete(self, endpoint: str) -> Dict[str, Any]:
-        """Make DELETE request"""
-        return self.client.delete(endpoint)
+    def _delete(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Make DELETE request (optional body)"""
+        return self.client.delete(endpoint, data=data)
 
     def _paginate(
         self,
