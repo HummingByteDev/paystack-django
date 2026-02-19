@@ -77,7 +77,7 @@ html_theme_options = {
 html_static_path = ['_static']
 html_logo = None
 html_title = 'paystack-django Documentation'
-html_baseurl = 'https://django-paystack.readthedocs.io/'
+html_baseurl = 'https://paystack-django.readthedocs.io/'
 
 # -- Options for intersphinx --------------------------------------------------
 intersphinx_mapping = {
