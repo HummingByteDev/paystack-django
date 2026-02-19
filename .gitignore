@@ -157,3 +157,4 @@ debug.log
 dev-files/
 .env.*
 .env
+git_init.sh
