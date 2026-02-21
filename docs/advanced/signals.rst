@@ -1,133 +1,198 @@
 .. _advanced/signals:
 
+==============
 Django Signals
 ==============
 
-paystack-django sends Django signals for payment events, allowing you to hook into the payment lifecycle.
+paystack-django dispatches Django signals when webhook events are processed,
+allowing you to hook into the payment lifecycle without modifying library code.
 
 Available Signals
------------------
+=================
 
-**paystack_charge_success**
+All signals are defined in ``djpaystack.signals``:
 
-Sent when a payment is successful:
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - Signal
+     - Triggered when
+   * - ``paystack_payment_successful``
+     - ``charge.success`` webhook received
+   * - ``paystack_subscription_created``
+     - ``subscription.create`` webhook received
+   * - ``paystack_subscription_cancelled``
+     - ``subscription.disable`` webhook received
+   * - ``paystack_subscription_not_renewing``
+     - ``subscription.not_renew`` webhook received
+   * - ``paystack_subscription_expiring_cards``
+     - ``subscription.expiring_cards`` webhook received
+   * - ``paystack_transfer_successful``
+     - ``transfer.success`` webhook received
+   * - ``paystack_transfer_failed``
+     - ``transfer.failed`` webhook received
+   * - ``paystack_transfer_reversed``
+     - ``transfer.reversed`` webhook received
+   * - ``paystack_refund_pending``
+     - ``refund.pending`` webhook received
+   * - ``paystack_refund_processing``
+     - ``refund.processing`` webhook received
+   * - ``paystack_refund_processed``
+     - ``refund.processed`` webhook received
+   * - ``paystack_refund_failed``
+     - ``refund.failed`` webhook received
+   * - ``paystack_dispute_created``
+     - ``charge.dispute.create`` webhook received
+   * - ``paystack_dispute_remind``
+     - ``charge.dispute.remind`` webhook received
+   * - ``paystack_dispute_resolved``
+     - ``charge.dispute.resolve`` webhook received
+   * - ``paystack_customeridentification_success``
+     - ``customeridentification.success`` webhook received
+   * - ``paystack_customeridentification_failed``
+     - ``customeridentification.failed`` webhook received
+   * - ``paystack_dedicatedaccount_assign_success``
+     - ``dedicatedaccount.assign.success`` webhook received
+   * - ``paystack_dedicatedaccount_assign_failed``
+     - ``dedicatedaccount.assign.failed`` webhook received
+   * - ``paystack_invoice_created``
+     - ``invoice.create`` webhook received
+   * - ``paystack_invoice_updated``
+     - ``invoice.update`` webhook received
+   * - ``paystack_invoice_payment_failed``
+     - ``invoice.payment_failed`` webhook received
+   * - ``paystack_paymentrequest_pending``
+     - ``paymentrequest.pending`` webhook received
+   * - ``paystack_paymentrequest_success``
+     - ``paymentrequest.success`` webhook received
+
+Connecting to Signals
+=====================
+
+Use Django's ``@receiver`` decorator:
 
 .. code-block:: python
 
     from django.dispatch import receiver
-    from djpaystack.signals import paystack_charge_success
+    from djpaystack.signals import (
+        paystack_payment_successful,
+    )
 
-    @receiver(paystack_charge_success)
-    def on_payment_success(sender, transaction=None, **kwargs):
-        """Handle successful payment"""
-        print(f"Payment successful: {transaction.reference}")
+    @receiver(paystack_payment_successful)
+    def on_payment_success(sender, transaction_data, **kwargs):
+        """Called when a charge.success webhook is processed."""
+        reference = transaction_data['reference']
+        amount = transaction_data['amount']  # in kobo
+        # Fulfil the order, send receipt, etc.
 
-**paystack_charge_failed**
+Best Practice: Register in ``apps.py``
+--------------------------------------
 
-Sent when a payment fails:
-
-.. code-block:: python
-
-    from django.dispatch import receiver
-    from djpaystack.signals import paystack_charge_failed
-
-    @receiver(paystack_charge_failed)
-    def on_payment_failed(sender, transaction=None, **kwargs):
-        """Handle failed payment"""
-        print(f"Payment failed: {transaction.reference}")
-
-**paystack_charge_pending**
-
-Sent when a payment is pending:
+Create a ``signals.py`` module in your app and import it from ``ready()``:
 
 .. code-block:: python
 
-    from django.dispatch import receiver
-    from djpaystack.signals import paystack_charge_pending
-
-    @receiver(paystack_charge_pending)
-    def on_payment_pending(sender, transaction=None, **kwargs):
-        """Handle pending payment"""
-        print(f"Payment pending: {transaction.reference}")
-
-Registering Signals
--------------------
-
-In your Django app's ``apps.py``:
-
-.. code-block:: python
-
+    # myapp/apps.py
     from django.apps import AppConfig
 
     class MyAppConfig(AppConfig):
         default_auto_field = 'django.db.models.BigAutoField'
         name = 'myapp'
-        
+
         def ready(self):
-            import myapp.signals
-
-In your ``signals.py``:
+            import myapp.signals  # noqa: F401
 
 .. code-block:: python
 
-    from django.dispatch import receiver
-    from djpaystack.signals import paystack_charge_success
-    from .models import Order
-
-    @receiver(paystack_charge_success)
-    def update_order_status(sender, transaction=None, **kwargs):
-        """Update order status after payment"""
-        order = Order.objects.get(reference=transaction.reference)
-        order.status = 'paid'
-        order.paid_at = timezone.now()
-        order.save()
-
-Using Signals for Multiple Events
-----------------------------------
-
-.. code-block:: python
-
-    from django.dispatch import receiver
-    from django.db.models.signals import post_save
-    from djpaystack.models import Transaction
-    from djpaystack.signals import paystack_charge_success
-
-    # On Paystack transaction model save
-    @receiver(post_save, sender=Transaction)
-    def on_transaction_save(sender, instance, created, **kwargs):
-        if created:
-            print(f"New transaction: {instance.reference}")
-
-    # On custom signal
-    @receiver(paystack_charge_success)
-    def on_charge_success(sender, transaction=None, **kwargs):
-        # Send confirmation email
-        send_payment_confirmation_email(transaction.email)
-
-Best Practices
---------------
-
-1. Keep signal handlers fast - offload long operations to Celery
-2. Use try-except blocks to avoid crashing signal chain
-3. Log signal events for debugging
-4. Test signals in isolation
-5. Document custom signals
-
-.. code-block:: python
-
+    # myapp/signals.py
     from django.dispatch import receiver
     from django.utils import timezone
-    from djpaystack.signals import paystack_charge_success
-    from .tasks import send_confirmation_email
+    from djpaystack.signals import paystack_payment_successful
+    from .models import Order
 
-    @receiver(paystack_charge_success)
-    def handle_payment_success(sender, transaction=None, **kwargs):
+    @receiver(paystack_payment_successful)
+    def fulfil_order(sender, transaction_data, **kwargs):
         try:
-            # Log event
-            logger.info(f"Payment success: {transaction.reference}")
-            
-            # Offload long operation to Celery
-            send_confirmation_email.delay(transaction.id)
-            
-        except Exception as e:
-            logger.error(f"Error handling payment: {str(e)}")
+            order = Order.objects.get(reference=transaction_data['reference'])
+            order.status = 'paid'
+            order.paid_at = timezone.now()
+            order.save()
+        except Order.DoesNotExist:
+            pass  # Log or handle missing order
+
+Multiple Events
+===============
+
+Subscribe to several signals in the same module:
+
+.. code-block:: python
+
+    from django.dispatch import receiver
+    from djpaystack.signals import (
+        paystack_payment_successful,
+        paystack_subscription_created,
+        paystack_transfer_successful,
+        paystack_refund_processed,
+        paystack_dispute_created,
+        paystack_invoice_created,
+        paystack_customeridentification_success,
+    )
+
+    @receiver(paystack_payment_successful)
+    def on_payment(sender, transaction_data, **kwargs):
+        ...
+
+    @receiver(paystack_subscription_created)
+    def on_subscription(sender, subscription_data, **kwargs):
+        ...
+
+    @receiver(paystack_transfer_successful)
+    def on_transfer(sender, transfer_data, **kwargs):
+        ...
+
+    @receiver(paystack_refund_processed)
+    def on_refund(sender, refund_data, **kwargs):
+        ...
+
+    @receiver(paystack_dispute_created)
+    def on_dispute(sender, dispute_data, **kwargs):
+        ...
+
+    @receiver(paystack_invoice_created)
+    def on_invoice(sender, invoice_data, **kwargs):
+        ...
+
+    @receiver(paystack_customeridentification_success)
+    def on_customer_verified(sender, identification_data, **kwargs):
+        ...
+
+Disabling Signals
+=================
+
+Set ``ENABLE_SIGNALS`` to ``False`` to suppress all signal dispatch:
+
+.. code-block:: python
+
+    PAYSTACK = {
+        'SECRET_KEY': 'sk_...',
+        'ENABLE_SIGNALS': False,
+    }
+
+Best Practices
+==============
+
+1. **Keep handlers fast** — Offload long-running work to Celery or Django-Q.
+2. **Use try/except** — A failing handler should not crash the webhook response.
+3. **Test in isolation** — Send signals manually in unit tests:
+
+   .. code-block:: python
+
+       from djpaystack.signals import paystack_payment_successful
+
+       paystack_payment_successful.send(
+           sender=None,
+           transaction_data={'reference': 'test_ref', 'amount': 50000},
+       )
+
+4. **Log signal events** — Helps diagnose missed or double-processed payments.

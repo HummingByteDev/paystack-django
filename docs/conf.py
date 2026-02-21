@@ -17,7 +17,7 @@ project = 'paystack-django'
 copyright = '2024, Humming Byte'
 author = 'Humming Byte'
 release = '1.1.1'
-version = '1.1.1'
+version = '1.2.0'
 
 # -- General configuration ----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/config.html#general-configuration

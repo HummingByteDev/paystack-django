@@ -26,8 +26,9 @@ Django signals, and production-ready defaults — everything you need to accept 
 - **Django Models** — ``PaystackTransaction``, ``PaystackCustomer``, ``PaystackPlan``, ``PaystackSubscription``, ``PaystackTransfer``, ``PaystackWebhookEvent``
 - **Webhook System** — Signature-verified, IP-whitelisted, deduplicated event handling
 - **Django Signals** — 9 signals for payment lifecycle events
-- **System Checks** — Validates configuration at startup (``E001``, ``W001``)
+- **System Checks** — Validates configuration at startup (``E001``)
 - **Context Manager** — ``PaystackClient`` supports ``with`` statements
+- **Management Commands** — ``paystack_listen`` (Cloudflare Tunnel) and ``paystack_webhook_event`` (test events)
 - **Type Hints** — Fully typed with ``py.typed`` marker
 
 .. toctree::
@@ -70,6 +71,9 @@ Django signals, and production-ready defaults — everything you need to accept 
    :maxdepth: 2
    :caption: Advanced Topics
 
+   advanced/webhook_security
+   advanced/cloudflare_tunnel
+   advanced/local_webhook_testing
    advanced/signals
    advanced/testing
    advanced/webhooks

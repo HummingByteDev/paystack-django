@@ -66,8 +66,7 @@ Add ``djpaystack`` to ``INSTALLED_APPS`` and run migrations:
     python manage.py migrate djpaystack
 
 On startup, Django system checks will verify that ``PAYSTACK['SECRET_KEY']`` is configured
-(error ``djpaystack.E001``) and warn if ``PAYSTACK['WEBHOOK_SECRET']`` is missing
-(warning ``djpaystack.W001``).
+(error ``djpaystack.E001``).
 
 Dependencies
 ------------

@@ -21,17 +21,17 @@ Setup
            path('webhooks/paystack/', handle_webhook, name='paystack-webhook'),
        ]
 
-2. **Set the Webhook Secret:**
+2. **Configure your secret key:**
 
+   Paystack uses your API secret key to sign webhooks.
    In the `Paystack Dashboard <https://dashboard.paystack.com/settings/developer>`_,
-   add your URL and copy the secret:
+   add your webhook URL. No separate webhook secret is needed:
 
    .. code-block:: python
 
        PAYSTACK = {
            'SECRET_KEY': 'sk_...',
            'PUBLIC_KEY': 'pk_...',
-           'WEBHOOK_SECRET': 'whsec_...',
        }
 
 How It Works
@@ -57,28 +57,30 @@ Supported Webhook Events
      - Description
    * - ``charge.success``
      - Payment completed successfully
-   * - ``charge.failed``
-     - Payment attempt failed
    * - ``charge.dispute.create``
      - New dispute opened
    * - ``charge.dispute.remind``
-     - Dispute reminder
+     - Dispute reminder sent
    * - ``charge.dispute.resolve``
      - Dispute resolved
-   * - ``transfer.success``
-     - Transfer completed
-   * - ``transfer.failed``
-     - Transfer failed
-   * - ``transfer.reversed``
-     - Transfer reversed
-   * - ``bank.transfer.rejected``
-     - Bank transfer rejected
-   * - ``subscription.create``
-     - Subscription created
-   * - ``subscription.disable``
-     - Subscription disabled
-   * - ``subscription.not_renew``
-     - Subscription will not renew
+   * - ``customeridentification.success``
+     - Customer identity verification succeeded
+   * - ``customeridentification.failed``
+     - Customer identity verification failed
+   * - ``dedicatedaccount.assign.success``
+     - Dedicated Virtual Account assigned
+   * - ``dedicatedaccount.assign.failed``
+     - Dedicated Virtual Account assignment failed
+   * - ``invoice.create``
+     - New invoice created
+   * - ``invoice.update``
+     - Invoice updated
+   * - ``invoice.payment_failed``
+     - Invoice payment failed
+   * - ``paymentrequest.pending``
+     - Payment request pending
+   * - ``paymentrequest.success``
+     - Payment request paid
    * - ``refund.pending``
      - Refund initiated
    * - ``refund.processing``
@@ -87,14 +89,20 @@ Supported Webhook Events
      - Refund completed
    * - ``refund.failed``
      - Refund failed
-   * - ``refund.needs-attention``
-     - Refund requires manual intervention
-   * - ``dedicatedaccount.assign.success``
-     - DVA assigned successfully
-   * - ``direct_debit.authorization.created``
-     - Direct debit authorization created
-   * - ``direct_debit.authorization.active``
-     - Direct debit authorization activated
+   * - ``subscription.create``
+     - Subscription created
+   * - ``subscription.disable``
+     - Subscription disabled / cancelled
+   * - ``subscription.not_renew``
+     - Subscription will not renew
+   * - ``subscription.expiring_cards``
+     - Cards on subscriptions are about to expire
+   * - ``transfer.success``
+     - Transfer completed
+   * - ``transfer.failed``
+     - Transfer failed
+   * - ``transfer.reversed``
+     - Transfer reversed
 
 See ``djpaystack.webhooks.events.WebhookEvent`` for the full enum.
 
@@ -105,15 +113,15 @@ Register a custom handler that overrides or extends the default behaviour:
 
 .. code-block:: python
 
-    from djpaystack.webhooks.handlers import WebhookHandler
+    from djpaystack.webhooks.handlers import webhook_handler
     from djpaystack.webhooks.events import WebhookEvent
 
-    handler = WebhookHandler()
-
-    @handler.register(WebhookEvent.CHARGE_SUCCESS)
     def my_charge_success(data):
         reference = data['reference']
         # Your custom logic here
+
+    # Override the default handler
+    webhook_handler.register(WebhookEvent.CHARGE_SUCCESS, my_charge_success)
 
 Django Signals
 --------------
@@ -123,10 +131,11 @@ Django Signals
     from django.dispatch import receiver
     from djpaystack.signals import (
         paystack_payment_successful,
-        paystack_payment_failed,
         paystack_transfer_successful,
         paystack_refund_processed,
         paystack_dispute_created,
+        paystack_invoice_created,
+        paystack_customeridentification_success,
     )
 
     @receiver(paystack_payment_successful)
@@ -136,20 +145,30 @@ Django Signals
 Testing Webhooks Locally
 ------------------------
 
-Use `ngrok <https://ngrok.com>`_ to expose your local server:
+Use the built-in ``paystack_listen`` command to expose your local server
+via a Cloudflare Tunnel:
 
 .. code-block:: bash
 
-    ngrok http 8000
-    # Use https://xxxx.ngrok.io/webhooks/paystack/ as your webhook URL
+    python manage.py paystack_listen
+    # Displays https://xxxx.trycloudflare.com/paystack/webhook/
+
+Or send simulated events directly:
+
+.. code-block:: bash
+
+    python manage.py paystack_webhook_event charge.success
+
+See :ref:`advanced/cloudflare_tunnel` and :ref:`advanced/local_webhook_testing`
+for full documentation.
 
 Best Practices
 --------------
 
-1. **Always configure WEBHOOK_SECRET** — Without it, all requests are rejected.
+1. **Keep your SECRET_KEY safe** — Webhook signatures are verified using your API secret key.
 2. **Respond quickly** — Return ``200`` within 5 seconds. Offload heavy work to Celery.
 3. **Process idempotently** — The same event may be delivered more than once.
 4. **Log events** — ``PaystackWebhookEvent`` model stores all received events.
 5. **Monitor failures** — Check ``PaystackWebhookEvent.objects.filter(processed=False)``.
 
-For advanced patterns, see :ref:`advanced/webhooks`.
+For advanced patterns, see :ref:`advanced/webhooks` and :ref:`advanced/webhook_security`.

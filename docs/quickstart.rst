@@ -26,7 +26,6 @@ Get up and running with paystack-django in 5 minutes.
     PAYSTACK = {
         'SECRET_KEY': 'sk_test_your_secret_key_here',
         'PUBLIC_KEY': 'pk_test_your_public_key_here',
-        'WEBHOOK_SECRET': 'whsec_your_webhook_secret',
     }
 
 3. Run Migrations

@@ -40,7 +40,6 @@ Never hard-code secrets. Use ``os.environ``, ``django-environ``, or any config l
     PAYSTACK = {
         'SECRET_KEY': os.environ['PAYSTACK_SECRET_KEY'],
         'PUBLIC_KEY': os.environ['PAYSTACK_PUBLIC_KEY'],
-        'WEBHOOK_SECRET': os.environ.get('PAYSTACK_WEBHOOK_SECRET', ''),
     }
 
 Full Configuration
@@ -50,11 +49,10 @@ Full Configuration
 
     PAYSTACK = {
         # Required
-        'SECRET_KEY': 'sk_...',          # Paystack secret API key
+        'SECRET_KEY': 'sk_...',          # Paystack secret API key (also used for webhook verification)
         'PUBLIC_KEY': 'pk_...',          # Paystack public API key
 
         # Webhook
-        'WEBHOOK_SECRET': 'whsec_...',   # HMAC SHA-512 verification
         'ALLOWED_WEBHOOK_IPS': [],       # Empty = Paystack default IPs
 
         # API behaviour
@@ -88,13 +86,10 @@ Configuration Reference
      - Purpose
      - Default
    * - ``SECRET_KEY``
-     - Paystack secret API key (**required**)
+     - Paystack secret API key. Also used for HMAC SHA-512 webhook signature verification. (**required**)
      - ``None``
    * - ``PUBLIC_KEY``
      - Paystack public API key (**required**)
-     - ``None``
-   * - ``WEBHOOK_SECRET``
-     - HMAC SHA-512 webhook signature secret
      - ``None``
    * - ``ALLOWED_WEBHOOK_IPS``
      - List of IPs to accept webhooks from. Empty list uses Paystack defaults.
@@ -142,10 +137,9 @@ Configuration Reference
 System Checks
 -------------
 
-On startup, ``djpaystack`` registers two Django system checks:
+On startup, ``djpaystack`` registers a Django system check:
 
 - **djpaystack.E001** — ``PAYSTACK['SECRET_KEY']`` is missing (error, blocks startup).
-- **djpaystack.W001** — ``PAYSTACK['WEBHOOK_SECRET']`` is missing (warning).
 
 Webhook Setup
 -------------
@@ -162,8 +156,10 @@ Webhook Setup
        ]
 
 2. In the `Paystack Dashboard <https://dashboard.paystack.com/settings/developer>`_,
-   set your webhook URL to ``https://yourdomain.com/webhooks/paystack/`` and copy the
-   webhook secret into ``PAYSTACK['WEBHOOK_SECRET']``.
+   set your webhook URL to ``https://yourdomain.com/webhooks/paystack/``.
+   Signature verification uses ``PAYSTACK['SECRET_KEY']`` automatically —
+   no separate webhook secret is needed.
+   See :ref:`advanced/webhook_security` for details.
 
 Logging
 -------
@@ -214,6 +210,5 @@ Environment-Specific Examples
     PAYSTACK = {
         'SECRET_KEY': os.environ['PAYSTACK_SECRET_KEY'],
         'PUBLIC_KEY': os.environ['PAYSTACK_PUBLIC_KEY'],
-        'WEBHOOK_SECRET': os.environ['PAYSTACK_WEBHOOK_SECRET'],
         'ENVIRONMENT': 'production',
     }

@@ -1,102 +1,93 @@
 .. _advanced/testing:
 
+=======
 Testing
 =======
 
-Test your Paystack integration thoroughly.
+Strategies for testing your Paystack integration.
 
-Unit Testing
-------------
+Unit Testing API Calls
+======================
 
-Test individual API methods:
+Mock the HTTP layer so tests never hit the real Paystack API:
 
 .. code-block:: python
 
     from django.test import TestCase
     from unittest.mock import patch, MagicMock
-    from djpaystack.api.transactions import Transaction
+    from djpaystack import PaystackClient
 
     class TransactionTestCase(TestCase):
-        
+
         def setUp(self):
-            self.transaction = Transaction()
-        
-        @patch('djpaystack.api.transactions.requests.post')
-        def test_initialize_transaction(self, mock_post):
-            # Mock API response
-            mock_post.return_value.json.return_value = {
-                'status': True,
-                'message': 'Authorization URL created',
-                'data': {
-                    'authorization_url': 'https://checkout.paystack.com/...',
-                    'access_code': 'ACCESS_CODE',
-                    'reference': 'UNIQUE_REF',
-                }
-            }
-            
-            response = self.transaction.initialize(
-                email='test@example.com',
-                amount=50000
+            self.client = PaystackClient()
+
+        @patch('djpaystack.api.base.requests.Session.request')
+        def test_initialize_transaction(self, mock_request):
+            mock_request.return_value = MagicMock(
+                status_code=200,
+                json=lambda: {
+                    'status': True,
+                    'message': 'Authorization URL created',
+                    'data': {
+                        'authorization_url': 'https://checkout.paystack.com/...',
+                        'access_code': 'ACCESS_CODE',
+                        'reference': 'UNIQUE_REF',
+                    },
+                },
             )
-            
+
+            response = self.client.transactions.initialize(
+                email='test@example.com',
+                amount=50000,
+            )
             self.assertTrue(response['status'])
             self.assertIn('authorization_url', response['data'])
 
-        @patch('djpaystack.api.transactions.requests.get')
-        def test_verify_transaction(self, mock_get):
-            # Mock API response
-            mock_get.return_value.json.return_value = {
-                'status': True,
-                'data': {
-                    'reference': 'UNIQUE_REF',
-                    'amount': 50000,
-                    'status': 'success',
-                }
-            }
-            
-            response = self.transaction.verify('UNIQUE_REF')
-            
+        @patch('djpaystack.api.base.requests.Session.request')
+        def test_verify_transaction(self, mock_request):
+            mock_request.return_value = MagicMock(
+                status_code=200,
+                json=lambda: {
+                    'status': True,
+                    'data': {
+                        'reference': 'UNIQUE_REF',
+                        'amount': 50000,
+                        'status': 'success',
+                    },
+                },
+            )
+
+            response = self.client.transactions.verify('UNIQUE_REF')
             self.assertTrue(response['status'])
             self.assertEqual(response['data']['status'], 'success')
 
 Integration Testing
--------------------
+===================
 
-Test with real API (use test credentials):
+Use **test** credentials (``sk_test_...``) to hit the real API in a CI
+environment:
 
 .. code-block:: python
 
     from django.test import TestCase, override_settings
-    from djpaystack.api.transactions import Transaction
+    from djpaystack import PaystackClient
 
     @override_settings(PAYSTACK={
         'SECRET_KEY': 'sk_test_...',
         'PUBLIC_KEY': 'pk_test_...',
     })
     class IntegrationTestCase(TestCase):
-        
+
         def test_payment_flow(self):
-            """Test complete payment flow"""
-            transaction = Transaction()
-            
-            # Initialize
-            init_response = transaction.initialize(
-                email='test@example.com',
-                amount=50000
+            client = PaystackClient()
+            init = client.transactions.initialize(
+                email='test@example.com', amount=50000,
             )
-            self.assertTrue(init_response['status'])
-            
-            reference = init_response['data']['reference']
-            
-            # Note: In real testing, user would complete payment
-            # Then verify
-            verify_response = transaction.verify(reference)
-            # Results depends on whether payment was completed
+            self.assertTrue(init['status'])
 
 View Testing
-------------
-
-Test your payment views:
+============
 
 .. code-block:: python
 
@@ -104,100 +95,123 @@ Test your payment views:
     from unittest.mock import patch
 
     class PaymentViewTestCase(TestCase):
-        
+
         def setUp(self):
-            self.client = Client()
-        
-        @patch('myapp.views.Transaction.initialize')
-        def test_checkout_view(self, mock_initialize):
-            mock_initialize.return_value = {
+            self.http = Client()
+
+        @patch('myapp.views.PaystackClient')
+        def test_checkout_view(self, MockClient):
+            MockClient.return_value.transactions.initialize.return_value = {
                 'status': True,
                 'data': {
                     'authorization_url': 'https://checkout.paystack.com/...',
                     'reference': 'TEST_REF',
-                }
+                },
             }
-            
-            response = self.client.post('/checkout/', {
+            response = self.http.post('/checkout/', {
                 'email': 'test@example.com',
                 'amount': '500',
             })
-            
-            self.assertEqual(response.status_code, 302)  # Redirect
+            self.assertEqual(response.status_code, 302)
 
 Webhook Testing
----------------
+===============
 
-Test webhook handling:
+Generate a correctly signed request from the test suite:
 
 .. code-block:: python
 
-    from django.test import TestCase, Client
+    import hmac, hashlib, json
+    from django.test import TestCase, Client, override_settings
     from django.urls import reverse
-    import json
-    from unittest.mock import patch
 
+    SECRET = 'sk_test_xxx'
+
+    @override_settings(PAYSTACK={'SECRET_KEY': SECRET})
     class WebhookTestCase(TestCase):
-        
-        def setUp(self):
-            self.client = Client()
-            self.webhook_url = reverse('paystack-webhook')
-        
-        @patch('djpaystack.webhooks.handlers.verify_webhook_signature')
-        def test_charge_success_webhook(self, mock_verify):
-            mock_verify.return_value = True
-            
-            payload = {
+
+        def _signed_post(self, payload_dict):
+            body = json.dumps(payload_dict)
+            sig = hmac.new(
+                SECRET.encode(), body.encode(), hashlib.sha512,
+            ).hexdigest()
+            return self.client.post(
+                reverse('paystack-webhook'),
+                data=body,
+                content_type='application/json',
+                HTTP_X_PAYSTACK_SIGNATURE=sig,
+            )
+
+        def test_charge_success(self):
+            resp = self._signed_post({
                 'event': 'charge.success',
                 'data': {
                     'reference': 'TEST_REF',
                     'amount': 50000,
                     'customer': {'email': 'test@example.com'},
                     'status': 'success',
-                }
-            }
-            
-            response = self.client.post(
-                self.webhook_url,
-                data=json.dumps(payload),
-                content_type='application/json'
+                },
+            })
+            self.assertEqual(resp.status_code, 200)
+
+        def test_invalid_signature_rejected(self):
+            resp = self.client.post(
+                reverse('paystack-webhook'),
+                data='{}',
+                content_type='application/json',
+                HTTP_X_PAYSTACK_SIGNATURE='bad',
             )
-            
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(resp.status_code, 401)
+
+Using ``paystack_webhook_event``
+================================
+
+Fire a simulated webhook at your running dev server from the command line:
+
+.. code-block:: bash
+
+    # Send a charge.success event with default sample data
+    python manage.py paystack_webhook_event charge.success
+
+    # Custom reference and amount
+    python manage.py paystack_webhook_event charge.success \
+        --reference order_123 --amount 75000
+
+    # Completely custom payload
+    python manage.py paystack_webhook_event charge.success \
+        --data '{"reference": "custom", "amount": 50000}'
+
+See :ref:`advanced/local_webhook_testing` for the full workflow.
 
 Testing Utilities
------------------
+=================
 
-Use the built-in test utilities:
+``WebhookTester`` (in ``djpaystack.dev.webhook_tester``) sends signed
+webhook requests programmatically:
 
 .. code-block:: python
 
     from djpaystack.dev.webhook_tester import WebhookTester
-    from djpaystack.dev.mock_client import MockPaystackClient
 
-    # Test webhooks
-    tester = WebhookTester()
-    tester.test_charge_success({
-        'reference': 'test-123',
-        'amount': 50000,
-    })
-
-    # Mock client for testing
-    mock_client = MockPaystackClient()
-    response = mock_client.initialize(
-        email='test@example.com',
-        amount=50000
+    tester = WebhookTester(
+        base_url='http://localhost:8000',
+        secret_key='sk_test_xxx',
     )
+    response = tester.send_test_webhook(
+        event='charge.success',
+        data={'reference': 'test-123', 'amount': 50000},
+    )
+    assert response.status_code == 200
 
 Best Practices
---------------
+==============
 
-1. Use test credentials, never live keys
-2. Mock external API calls
-3. Test both success and failure cases
-4. Test error handling
-5. Use factories for test data
-6. Keep tests isolated
+1. **Use test credentials** — never live keys in CI or local dev.
+2. **Mock external calls** — patch ``requests.Session.request`` to keep tests fast and deterministic.
+3. **Test success and failure paths** — verify both happy-path and error responses.
+4. **Keep tests isolated** — use ``override_settings`` so each test has its own config.
+5. **Test signal handlers** — send signals manually and assert side-effects.
+6. **Run the full suite before pushing** — ``python -m pytest djpaystack/tests/ -v``.
 7. Test at multiple levels (unit, integration, end-to-end)
 
 .. code-block:: python
