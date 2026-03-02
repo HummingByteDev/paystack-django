@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from django.core.checks import Error, Warning, register
+from django.core.checks import Error, register
 
 
 class DjPaystackConfig(AppConfig):
@@ -33,18 +33,6 @@ def _register_paystack_checks():
                     "PAYSTACK['SECRET_KEY'] is not configured.",
                     hint="Add PAYSTACK = {'SECRET_KEY': 'sk_...'} to your Django settings.",
                     id='djpaystack.E001',
-                )
-            )
-
-        if not paystack_conf.get('WEBHOOK_SECRET'):
-            errors.append(
-                Warning(
-                    "PAYSTACK['WEBHOOK_SECRET'] is not configured.",
-                    hint=(
-                        "Webhook signature verification will reject all requests. "
-                        "Set PAYSTACK['WEBHOOK_SECRET'] to your Paystack webhook secret."
-                    ),
-                    id='djpaystack.W001',
                 )
             )
 

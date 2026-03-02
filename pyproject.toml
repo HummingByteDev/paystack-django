@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paystack-django"
-version = "1.1.1"
+version = "1.2.0"
 description = "A comprehensive Django integration for Paystack Payment Gateway"
 readme = "README.md"
 requires-python = ">=3.8"

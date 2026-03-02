@@ -9,14 +9,29 @@ from ..utils import verify_webhook_signature
 from .events import WebhookEvent, WebhookEventData
 from ..signals import (
     paystack_payment_successful,
-    paystack_payment_failed,
     paystack_subscription_created,
     paystack_subscription_cancelled,
+    paystack_subscription_not_renewing,
+    paystack_subscription_expiring_cards,
     paystack_transfer_successful,
     paystack_transfer_failed,
+    paystack_transfer_reversed,
+    paystack_refund_pending,
+    paystack_refund_processing,
     paystack_refund_processed,
+    paystack_refund_failed,
     paystack_dispute_created,
+    paystack_dispute_remind,
     paystack_dispute_resolved,
+    paystack_customeridentification_success,
+    paystack_customeridentification_failed,
+    paystack_dedicatedaccount_assign_success,
+    paystack_dedicatedaccount_assign_failed,
+    paystack_invoice_created,
+    paystack_invoice_updated,
+    paystack_invoice_payment_failed,
+    paystack_paymentrequest_pending,
+    paystack_paymentrequest_success,
 )
 
 logger = logging.getLogger('djpaystack')
@@ -48,10 +63,9 @@ class WebhookHandler:
         self._processed_events: OrderedDict = OrderedDict()
 
     def _register_default_handlers(self):
-        """Register default event handlers"""
+        """Register default event handlers for all supported Paystack events"""
         # Charge events
         self.register(WebhookEvent.CHARGE_SUCCESS, self.handle_charge_success)
-        self.register(WebhookEvent.CHARGE_FAILED, self.handle_charge_failed)
 
         # Transfer events
         self.register(WebhookEvent.TRANSFER_SUCCESS,
@@ -68,25 +82,50 @@ class WebhookHandler:
                       self.handle_subscription_disable)
         self.register(WebhookEvent.SUBSCRIPTION_NOT_RENEW,
                       self.handle_subscription_not_renew)
+        self.register(WebhookEvent.SUBSCRIPTION_EXPIRING_CARDS,
+                      self.handle_subscription_expiring_cards)
 
         # Refund events
+        self.register(WebhookEvent.REFUND_PENDING,
+                      self.handle_refund_pending)
+        self.register(WebhookEvent.REFUND_PROCESSING,
+                      self.handle_refund_processing)
         self.register(WebhookEvent.REFUND_PROCESSED,
                       self.handle_refund_processed)
+        self.register(WebhookEvent.REFUND_FAILED,
+                      self.handle_refund_failed)
 
         # Dispute events
         self.register(WebhookEvent.CHARGE_DISPUTE_CREATE,
                       self.handle_dispute_create)
+        self.register(WebhookEvent.CHARGE_DISPUTE_REMIND,
+                      self.handle_dispute_remind)
         self.register(WebhookEvent.CHARGE_DISPUTE_RESOLVE,
                       self.handle_dispute_resolve)
+
+        # Customer Identification events
+        self.register(WebhookEvent.CUSTOMERIDENTIFICATION_SUCCESS,
+                      self.handle_customeridentification_success)
+        self.register(WebhookEvent.CUSTOMERIDENTIFICATION_FAILED,
+                      self.handle_customeridentification_failed)
 
         # Dedicated Account events
         self.register(WebhookEvent.DEDICATEDACCOUNT_ASSIGN_SUCCESS,
                       self.handle_dva_assign_success)
+        self.register(WebhookEvent.DEDICATEDACCOUNT_ASSIGN_FAILED,
+                      self.handle_dva_assign_failed)
 
         # Invoice events
         self.register(WebhookEvent.INVOICE_CREATE, self.handle_invoice_create)
+        self.register(WebhookEvent.INVOICE_UPDATE, self.handle_invoice_update)
         self.register(WebhookEvent.INVOICE_PAYMENT_FAILED,
-                      self.handle_invoice_failed)
+                      self.handle_invoice_payment_failed)
+
+        # Payment Request events
+        self.register(WebhookEvent.PAYMENTREQUEST_PENDING,
+                      self.handle_paymentrequest_pending)
+        self.register(WebhookEvent.PAYMENTREQUEST_SUCCESS,
+                      self.handle_paymentrequest_success)
 
     def register(self, event_type: str, handler: Callable):
         """
@@ -125,7 +164,10 @@ class WebhookHandler:
 
     def verify_signature(self, payload: bytes, signature: str) -> bool:
         """
-        Verify webhook signature using HMAC SHA512
+        Verify webhook signature using HMAC SHA512.
+
+        Paystack signs webhooks with your API secret key (``PAYSTACK['SECRET_KEY']``).
+        No separate webhook secret is needed.
 
         Args:
             payload: Raw request body
@@ -134,15 +176,15 @@ class WebhookHandler:
         Returns:
             True if signature is valid
         """
-        webhook_secret = paystack_settings.WEBHOOK_SECRET
-        if not webhook_secret:
+        secret_key = paystack_settings.SECRET_KEY
+        if not secret_key:
             logger.error(
-                "WEBHOOK_SECRET not configured - rejecting webhook request. "
-                "Set PAYSTACK['WEBHOOK_SECRET'] in your Django settings."
+                "SECRET_KEY not configured - rejecting webhook request. "
+                "Set PAYSTACK['SECRET_KEY'] in your Django settings."
             )
             return False
 
-        return verify_webhook_signature(payload, signature, webhook_secret)
+        return verify_webhook_signature(payload, signature, secret_key)
 
     def is_duplicate_event(self, event_id: str) -> bool:
         """
@@ -222,7 +264,11 @@ class WebhookHandler:
             raise PaystackWebhookError(
                 f"Failed to handle webhook event: {str(e)}")
 
+    # ------------------------------------------------------------------
     # Default event handlers
+    # ------------------------------------------------------------------
+
+    # --- Charge events ------------------------------------------------
 
     def handle_charge_success(self, data: Dict[str, Any]):
         """Handle successful charge"""
@@ -251,34 +297,10 @@ class WebhookHandler:
         if paystack_settings.ENABLE_SIGNALS:
             paystack_payment_successful.send(
                 sender=self.__class__,
-                transaction_data=data
+                data=data
             )
 
-    def handle_charge_failed(self, data: Dict[str, Any]):
-        """Handle failed charge"""
-        if paystack_settings.ENABLE_MODELS:
-            from ..models import PaystackTransaction
-
-            reference = data.get('reference')
-            if reference:
-                PaystackTransaction.objects.update_or_create(
-                    reference=reference,
-                    defaults={
-                        'amount': data.get('amount'),
-                        'currency': data.get('currency', 'NGN'),
-                        'status': 'failed',
-                        'customer_email': data.get('customer', {}).get('email'),
-                        'customer_code': data.get('customer', {}).get('customer_code'),
-                        'metadata': data.get('metadata'),
-                        'raw_response': data,
-                    }
-                )
-
-        if paystack_settings.ENABLE_SIGNALS:
-            paystack_payment_failed.send(
-                sender=self.__class__,
-                transaction_data=data
-            )
+    # --- Subscription events ------------------------------------------
 
     def handle_subscription_create(self, data: Dict[str, Any]):
         """Handle subscription creation"""
@@ -304,7 +326,7 @@ class WebhookHandler:
         if paystack_settings.ENABLE_SIGNALS:
             paystack_subscription_created.send(
                 sender=self.__class__,
-                subscription_data=data
+                data=data
             )
 
     def handle_subscription_disable(self, data: Dict[str, Any]):
@@ -321,7 +343,7 @@ class WebhookHandler:
         if paystack_settings.ENABLE_SIGNALS:
             paystack_subscription_cancelled.send(
                 sender=self.__class__,
-                subscription_data=data
+                data=data
             )
 
     def handle_subscription_not_renew(self, data: Dict[str, Any]):
@@ -334,6 +356,27 @@ class WebhookHandler:
                 PaystackSubscription.objects.filter(
                     subscription_code=subscription_code
                 ).update(status='non-renewing')
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_subscription_not_renewing.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    def handle_subscription_expiring_cards(self, data: Dict[str, Any]):
+        """Handle notification of expiring cards on subscriptions"""
+        logger.info(
+            "Expiring cards notification received for %d subscriptions",
+            len(data) if isinstance(data, list) else 1,
+        )
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_subscription_expiring_cards.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    # --- Transfer events ----------------------------------------------
 
     def handle_transfer_success(self, data: Dict[str, Any]):
         """Handle successful transfer"""
@@ -360,7 +403,7 @@ class WebhookHandler:
         if paystack_settings.ENABLE_SIGNALS:
             paystack_transfer_successful.send(
                 sender=self.__class__,
-                transfer_data=data
+                data=data
             )
 
     def handle_transfer_failed(self, data: Dict[str, Any]):
@@ -387,7 +430,7 @@ class WebhookHandler:
         if paystack_settings.ENABLE_SIGNALS:
             paystack_transfer_failed.send(
                 sender=self.__class__,
-                transfer_data=data
+                data=data
             )
 
     def handle_transfer_reversed(self, data: Dict[str, Any]):
@@ -404,20 +447,72 @@ class WebhookHandler:
                     raw_response=data
                 )
 
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_transfer_reversed.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    # --- Refund events ------------------------------------------------
+
+    def handle_refund_pending(self, data: Dict[str, Any]):
+        """Handle pending refund"""
+        logger.info("Refund pending: transaction %s", data.get('transaction'))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_refund_pending.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    def handle_refund_processing(self, data: Dict[str, Any]):
+        """Handle refund that is being processed"""
+        logger.info("Refund processing: transaction %s",
+                    data.get('transaction'))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_refund_processing.send(
+                sender=self.__class__,
+                data=data
+            )
+
     def handle_refund_processed(self, data: Dict[str, Any]):
         """Handle processed refund"""
         if paystack_settings.ENABLE_SIGNALS:
             paystack_refund_processed.send(
                 sender=self.__class__,
-                refund_data=data
+                data=data
             )
+
+    def handle_refund_failed(self, data: Dict[str, Any]):
+        """Handle failed refund"""
+        logger.warning("Refund failed: transaction %s",
+                       data.get('transaction'))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_refund_failed.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    # --- Dispute events -----------------------------------------------
 
     def handle_dispute_create(self, data: Dict[str, Any]):
         """Handle dispute creation"""
         if paystack_settings.ENABLE_SIGNALS:
             paystack_dispute_created.send(
                 sender=self.__class__,
-                dispute_data=data
+                data=data
+            )
+
+    def handle_dispute_remind(self, data: Dict[str, Any]):
+        """Handle dispute reminder"""
+        logger.info("Dispute reminder: %s", data.get('id'))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_dispute_remind.send(
+                sender=self.__class__,
+                data=data
             )
 
     def handle_dispute_resolve(self, data: Dict[str, Any]):
@@ -425,21 +520,122 @@ class WebhookHandler:
         if paystack_settings.ENABLE_SIGNALS:
             paystack_dispute_resolved.send(
                 sender=self.__class__,
-                dispute_data=data
+                data=data
             )
+
+    # --- Customer Identification events -------------------------------
+
+    def handle_customeridentification_success(self, data: Dict[str, Any]):
+        """Handle successful customer identification (BVN/NIN)"""
+        logger.info(
+            "Customer identification succeeded: %s",
+            data.get('customer_code', data.get('customer_id')),
+        )
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_customeridentification_success.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    def handle_customeridentification_failed(self, data: Dict[str, Any]):
+        """Handle failed customer identification"""
+        logger.warning(
+            "Customer identification failed: %s",
+            data.get('customer_code', data.get('customer_id')),
+        )
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_customeridentification_failed.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    # --- Dedicated Account events -------------------------------------
 
     def handle_dva_assign_success(self, data: Dict[str, Any]):
         """Handle successful dedicated account assignment"""
         logger.info("Dedicated account assigned: %s",
-                    data.get('account_number'))
+                    data.get('dedicated_account', {}).get('account_number',
+                                                          data.get('account_number')))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_dedicatedaccount_assign_success.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    def handle_dva_assign_failed(self, data: Dict[str, Any]):
+        """Handle failed dedicated account assignment"""
+        logger.warning(
+            "Dedicated account assignment failed: %s",
+            data.get('customer', {}).get('customer_code'),
+        )
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_dedicatedaccount_assign_failed.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    # --- Invoice events -----------------------------------------------
 
     def handle_invoice_create(self, data: Dict[str, Any]):
         """Handle invoice creation"""
-        logger.info("Invoice created: %s", data.get('reference'))
+        logger.info("Invoice created: %s", data.get('invoice_code',
+                                                    data.get('reference')))
 
-    def handle_invoice_failed(self, data: Dict[str, Any]):
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_invoice_created.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    def handle_invoice_update(self, data: Dict[str, Any]):
+        """Handle invoice update"""
+        logger.info("Invoice updated: %s", data.get('invoice_code',
+                                                    data.get('reference')))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_invoice_updated.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    def handle_invoice_payment_failed(self, data: Dict[str, Any]):
         """Handle failed invoice payment"""
-        logger.warning("Invoice payment failed: %s", data.get('reference'))
+        logger.warning("Invoice payment failed: %s", data.get('invoice_code',
+                                                              data.get('reference')))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_invoice_payment_failed.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    # --- Payment Request events ---------------------------------------
+
+    def handle_paymentrequest_pending(self, data: Dict[str, Any]):
+        """Handle pending payment request"""
+        logger.info("Payment request pending: %s", data.get('request_code',
+                                                            data.get('id')))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_paymentrequest_pending.send(
+                sender=self.__class__,
+                data=data
+            )
+
+    def handle_paymentrequest_success(self, data: Dict[str, Any]):
+        """Handle successful payment request"""
+        logger.info("Payment request succeeded: %s", data.get('request_code',
+                                                              data.get('id')))
+
+        if paystack_settings.ENABLE_SIGNALS:
+            paystack_paymentrequest_success.send(
+                sender=self.__class__,
+                data=data
+            )
 
 
 # Global webhook handler instance

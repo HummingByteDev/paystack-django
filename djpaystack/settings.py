@@ -18,7 +18,6 @@ class PaystackSettings:
         'TIMEOUT': 30,
         'MAX_RETRIES': 3,
         'VERIFY_SSL': True,
-        'WEBHOOK_SECRET': None,
         'CALLBACK_URL': None,
         'CURRENCY': 'NGN',
         'ENVIRONMENT': 'production',  # 'production' or 'test'

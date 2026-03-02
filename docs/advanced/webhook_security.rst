@@ -69,7 +69,7 @@ Request Flow
 
          ┌────────────┐             ┌──────────────────┐
          │  Paystack   │  POST      │  Your Django App  │
-         │  Servers    │ ─────────► │  /paystack/webhook/│
+         │  Servers    │ ─────────► │  /webhooks/paystack/ │
          └────────────┘             └──────────────────┘
                 │                           │
      1. JSON body                  2. Read X-Paystack-Signature

@@ -12,7 +12,7 @@ class PaystackLoggingMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         """Log incoming requests to webhook endpoints"""
-        if request.path.startswith('/paystack/webhook'):
+        if request.path.startswith('/webhooks/paystack'):
             logger.info(
                 "Paystack webhook request: %s %s from %s",
                 request.method, request.path,

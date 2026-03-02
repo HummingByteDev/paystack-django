@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="paystack-django",
-    version="1.1.1",
+    version="1.2.0",
     author="Humming Byte",
     author_email="dev@hummingbyte.org",
     description="A comprehensive Django integration for Paystack Payment Gateway",

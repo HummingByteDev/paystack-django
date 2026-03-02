@@ -18,8 +18,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--url',
             type=str,
-            default='http://localhost:8000/paystack/webhook/',
-            help='Webhook URL (default: http://localhost:8000/paystack/webhook/)',
+            default='http://localhost:8000/webhooks/paystack/',
+            help='Webhook URL (default: http://localhost:8000/webhooks/paystack/)',
         )
         parser.add_argument(
             '--data',
@@ -49,17 +49,17 @@ class Command(BaseCommand):
         event_type = options['event_type']
         webhook_url = options['url']
 
-        webhook_secret = paystack_settings.WEBHOOK_SECRET
-        if not webhook_secret:
+        secret_key = paystack_settings.SECRET_KEY
+        if not secret_key:
             self.stdout.write(self.style.ERROR(
-                'WEBHOOK_SECRET not configured in settings'
+                'SECRET_KEY not configured in settings'
             ))
             return
 
         self.stdout.write(f'Sending test webhook: {event_type}')
         self.stdout.write(f'Webhook URL: {webhook_url}')
 
-        tester = WebhookTester(webhook_url, webhook_secret)
+        tester = WebhookTester(webhook_url, secret_key=secret_key)
 
         try:
             # Use custom data if provided
@@ -70,13 +70,6 @@ class Command(BaseCommand):
             # Or use convenience methods for common events
             elif event_type == WebhookEvent.CHARGE_SUCCESS:
                 response = tester.send_charge_success(
-                    reference=options['reference'],
-                    amount=options['amount'],
-                    email=options['email']
-                )
-
-            elif event_type == WebhookEvent.CHARGE_FAILED:
-                response = tester.send_charge_failed(
                     reference=options['reference'],
                     amount=options['amount'],
                     email=options['email']

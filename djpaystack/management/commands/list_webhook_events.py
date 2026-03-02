@@ -7,13 +7,13 @@ class Command(BaseCommand):
     help = 'List all available Paystack webhook event types'
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('Available Paystack Webhook Events:\n'))
+        self.stdout.write(self.style.SUCCESS(
+            'Available Paystack Webhook Events:\n'))
         self.stdout.write('━' * 70)
 
         events = {
             'Charge Events': [
                 WebhookEvent.CHARGE_SUCCESS,
-                WebhookEvent.CHARGE_FAILED,
             ],
             'Transfer Events': [
                 WebhookEvent.TRANSFER_SUCCESS,
@@ -41,19 +41,15 @@ class Command(BaseCommand):
                 WebhookEvent.REFUND_FAILED,
             ],
             'Dispute Events': [
-                WebhookEvent.DISPUTE_CREATE,
-                WebhookEvent.DISPUTE_REMIND,
-                WebhookEvent.DISPUTE_RESOLVE,
+                WebhookEvent.CHARGE_DISPUTE_CREATE,
+                WebhookEvent.CHARGE_DISPUTE_REMIND,
+                WebhookEvent.CHARGE_DISPUTE_RESOLVE,
             ],
             'Other Events': [
                 WebhookEvent.DEDICATEDACCOUNT_ASSIGN_SUCCESS,
                 WebhookEvent.DEDICATEDACCOUNT_ASSIGN_FAILED,
                 WebhookEvent.PAYMENTREQUEST_PENDING,
                 WebhookEvent.PAYMENTREQUEST_SUCCESS,
-                WebhookEvent.PRODUCTORDER_PENDING,
-                WebhookEvent.PRODUCTORDER_SUCCESS,
-                WebhookEvent.TERMINAL_LIVE,
-                WebhookEvent.TERMINAL_OFFLINE,
             ]
         }
 
@@ -65,4 +61,5 @@ class Command(BaseCommand):
         self.stdout.write('\n' + '━' * 70)
         self.stdout.write('\nUsage:')
         self.stdout.write('  python manage.py test_webhook charge.success')
-        self.stdout.write('  python manage.py test_webhook transfer.failed --amount 100000\n')
+        self.stdout.write(
+            '  python manage.py test_webhook transfer.failed --amount 100000\n')

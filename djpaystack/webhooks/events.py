@@ -11,15 +11,11 @@ class WebhookEvent(str, Enum):
 
     # Charge Events
     CHARGE_SUCCESS = 'charge.success'
-    CHARGE_FAILED = 'charge.failed'
 
     # Transfer Events
     TRANSFER_SUCCESS = 'transfer.success'
     TRANSFER_FAILED = 'transfer.failed'
     TRANSFER_REVERSED = 'transfer.reversed'
-
-    # Bank Transfer Events
-    BANK_TRANSFER_REJECTED = 'bank.transfer.rejected'
 
     # Subscription Events
     SUBSCRIPTION_CREATE = 'subscription.create'
@@ -39,7 +35,6 @@ class WebhookEvent(str, Enum):
     # Refund Events
     REFUND_PENDING = 'refund.pending'
     REFUND_PROCESSING = 'refund.processing'
-    REFUND_NEEDS_ATTENTION = 'refund.needs-attention'
     REFUND_PROCESSED = 'refund.processed'
     REFUND_FAILED = 'refund.failed'
 
@@ -52,21 +47,9 @@ class WebhookEvent(str, Enum):
     DEDICATEDACCOUNT_ASSIGN_SUCCESS = 'dedicatedaccount.assign.success'
     DEDICATEDACCOUNT_ASSIGN_FAILED = 'dedicatedaccount.assign.failed'
 
-    # Direct Debit Events
-    DIRECT_DEBIT_AUTHORIZATION_CREATED = 'direct_debit.authorization.created'
-    DIRECT_DEBIT_AUTHORIZATION_ACTIVE = 'direct_debit.authorization.active'
-
     # Payment Request Events
     PAYMENTREQUEST_PENDING = 'paymentrequest.pending'
     PAYMENTREQUEST_SUCCESS = 'paymentrequest.success'
-
-    # Product Events
-    PRODUCTORDER_PENDING = 'productorder.pending'
-    PRODUCTORDER_SUCCESS = 'productorder.success'
-
-    # Terminal Events
-    TERMINAL_LIVE = 'terminal.live'
-    TERMINAL_OFFLINE = 'terminal.offline'
 
     @classmethod
     def all_events(cls) -> list:

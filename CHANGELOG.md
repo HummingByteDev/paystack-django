@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-07-15
+
+### Removed
+
+- **`WEBHOOK_SECRET` setting** — Paystack signs webhooks with your API secret key (`sk_...`), so a separate webhook secret was redundant. Webhook verification now reads `PAYSTACK['SECRET_KEY']` directly. Remove any `WEBHOOK_SECRET` entries from your settings.
+- **`djpaystack.W001` system check** — The warning for a missing `WEBHOOK_SECRET` has been removed since the setting no longer exists.
+
+### Added
+
+- **`paystack_listen` management command** — Start a [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) to receive live Paystack webhooks on localhost. Detects or guides installation of `cloudflared`, streams the tunnel URL, and prints the webhook URL to register in the Paystack dashboard. Accepts `--host`, `--port`, and `--webhook-path` options.
+- **`paystack_webhook_event` management command** — Send a signed webhook event to your local dev server for testing. Includes sample payloads for 11 common event types (`charge.success`, `transfer.success`, `subscription.create`, etc.). Supports `--reference`, `--amount`, `--email`, `--data` (custom JSON), and `--list` to display all supported events.
+- **Documentation: Cloudflare Tunnel guide** (`docs/advanced/cloudflare_tunnel.rst`) — Install instructions for Linux, macOS, and Windows; manual tunnel usage; `paystack_listen` command reference.
+- **Documentation: Webhook Security deep-dive** (`docs/advanced/webhook_security.rst`) — HMAC SHA-512 verification flow, why `SECRET_KEY` is used (not a separate secret), IP whitelisting, event deduplication, and production best practices.
+- **Documentation: Local Webhook Testing guide** (`docs/advanced/local_webhook_testing.rst`) — End-to-end workflow combining `paystack_listen`, `paystack_webhook_event`, `WebhookTester`, and Django `TestCase` examples.
+
+### Changed
+
+- **Webhook handler** — `verify_signature()` reads `paystack_settings.SECRET_KEY` instead of the removed `WEBHOOK_SECRET`.
+- **`test_webhook` command** — Uses `SECRET_KEY` for HMAC signing.
+- **`start_webhook_tunnel` command** — Instructions updated to reference `SECRET_KEY`.
+- **`list_webhook_events` command** — Fixed bug referencing non-existent `DISPUTE_CREATE` / `DISPUTE_REMIND` / `DISPUTE_RESOLVE` enum members; corrected to `CHARGE_DISPUTE_CREATE` / `CHARGE_DISPUTE_REMIND` / `CHARGE_DISPUTE_RESOLVE`.
+- **`WebhookTester` dev utility** — Renamed `webhook_secret` parameter to `secret_key` for consistency.
+- **Documentation overhaul** — Rewrote `signals.rst` (correct signal names), `testing.rst` (correct `PaystackClient` usage), `webhooks.rst` (removed `WEBHOOK_SECRET` examples), `configuration.rst`, `webhooks.rst`, `installation.rst`, `README.md`, and `INSTALLATION.md` to remove all `WEBHOOK_SECRET` references.
+
 ## [1.1.0] - 2025-06-20
 
 ### Security
@@ -63,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✨ Async-ready design for future async support
 - ✨ Comprehensive test suite with high coverage
 - ✨ Full API documentation with examples
-- ✨ Support for Django 3.2 through Django 5.0
+- ✨ Support for Django 3.2 through Django 6.0
 - ✨ Support for Python 3.8 through Python 3.12
 
 ### Supported Services

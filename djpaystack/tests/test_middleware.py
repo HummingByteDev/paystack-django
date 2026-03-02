@@ -14,7 +14,7 @@ class TestPaystackLoggingMiddleware(TestCase):
 
     def test_logs_webhook_request(self):
         """Test that webhook requests are logged"""
-        request = self.factory.post('/paystack/webhook/')
+        request = self.factory.post('/webhooks/paystack/')
 
         with self.assertLogs('djpaystack', level='INFO') as cm:
             self.middleware.process_request(request)
@@ -32,7 +32,7 @@ class TestPaystackLoggingMiddleware(TestCase):
 
     def test_returns_none(self):
         """Test that process_request returns None"""
-        request = self.factory.post('/paystack/webhook/')
+        request = self.factory.post('/webhooks/paystack/')
 
         with self.assertLogs('djpaystack', level='INFO'):
             result = self.middleware.process_request(request)

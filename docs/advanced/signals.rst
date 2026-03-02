@@ -80,10 +80,10 @@ Use Django's ``@receiver`` decorator:
     )
 
     @receiver(paystack_payment_successful)
-    def on_payment_success(sender, transaction_data, **kwargs):
+    def on_payment_success(sender, data, **kwargs):
         """Called when a charge.success webhook is processed."""
-        reference = transaction_data['reference']
-        amount = transaction_data['amount']  # in kobo
+        reference = data['reference']
+        amount = data['amount']  # in kobo
         # Fulfil the order, send receipt, etc.
 
 Best Practice: Register in ``apps.py``
@@ -112,9 +112,9 @@ Create a ``signals.py`` module in your app and import it from ``ready()``:
     from .models import Order
 
     @receiver(paystack_payment_successful)
-    def fulfil_order(sender, transaction_data, **kwargs):
+    def fulfil_order(sender, data, **kwargs):
         try:
-            order = Order.objects.get(reference=transaction_data['reference'])
+            order = Order.objects.get(reference=data['reference'])
             order.status = 'paid'
             order.paid_at = timezone.now()
             order.save()
@@ -140,31 +140,31 @@ Subscribe to several signals in the same module:
     )
 
     @receiver(paystack_payment_successful)
-    def on_payment(sender, transaction_data, **kwargs):
+    def on_payment(sender, data, **kwargs):
         ...
 
     @receiver(paystack_subscription_created)
-    def on_subscription(sender, subscription_data, **kwargs):
+    def on_subscription(sender, data, **kwargs):
         ...
 
     @receiver(paystack_transfer_successful)
-    def on_transfer(sender, transfer_data, **kwargs):
+    def on_transfer(sender, data, **kwargs):
         ...
 
     @receiver(paystack_refund_processed)
-    def on_refund(sender, refund_data, **kwargs):
+    def on_refund(sender, data, **kwargs):
         ...
 
     @receiver(paystack_dispute_created)
-    def on_dispute(sender, dispute_data, **kwargs):
+    def on_dispute(sender, data, **kwargs):
         ...
 
     @receiver(paystack_invoice_created)
-    def on_invoice(sender, invoice_data, **kwargs):
+    def on_invoice(sender, data, **kwargs):
         ...
 
     @receiver(paystack_customeridentification_success)
-    def on_customer_verified(sender, identification_data, **kwargs):
+    def on_customer_verified(sender, data, **kwargs):
         ...
 
 Disabling Signals
@@ -192,7 +192,7 @@ Best Practices
 
        paystack_payment_successful.send(
            sender=None,
-           transaction_data={'reference': 'test_ref', 'amount': 50000},
+           data={'reference': 'test_ref', 'amount': 50000},
        )
 
 4. **Log signal events** — Helps diagnose missed or double-processed payments.

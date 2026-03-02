@@ -18,21 +18,21 @@ class WebhookTester:
     Simulates Paystack webhook events for development
     """
 
-    def __init__(self, webhook_url: str, webhook_secret: str):
+    def __init__(self, webhook_url: str, secret_key: str):
         """
         Initialize webhook tester
 
         Args:
-            webhook_url: Local webhook URL (e.g., http://localhost:8000/paystack/webhook/)
-            webhook_secret: Webhook secret for signature generation
+            webhook_url: Local webhook URL (e.g., http://localhost:8000/webhooks/paystack/)
+            secret_key: Paystack secret key for HMAC signature generation
         """
         self.webhook_url = webhook_url
-        self.webhook_secret = webhook_secret
+        self.secret_key = secret_key
 
     def _generate_signature(self, payload: bytes) -> str:
         """Generate webhook signature"""
         return hmac.new(
-            self.webhook_secret.encode('utf-8'),
+            self.secret_key.encode('utf-8'),
             payload,
             hashlib.sha512
         ).hexdigest()
@@ -117,28 +117,6 @@ class WebhookTester:
 
         return self.send_event(WebhookEvent.CHARGE_SUCCESS, data)
 
-    def send_charge_failed(
-        self,
-        reference: str = 'test_ref_456',
-        amount: int = 50000,
-        email: str = 'test@example.com'
-    ) -> requests.Response:
-        """Send failed charge event"""
-        data = {
-            'reference': reference,
-            'amount': amount,
-            'currency': 'NGN',
-            'status': 'failed',
-            'customer': {
-                'email': email,
-                'customer_code': 'CUS_test123'
-            },
-            'gateway_response': 'Insufficient funds',
-            'metadata': {}
-        }
-
-        return self.send_event(WebhookEvent.CHARGE_FAILED, data)
-
     def send_subscription_create(
         self,
         subscription_code: str = 'SUB_test123',
@@ -196,8 +174,8 @@ class WebhookTester:
 def send_test_webhook(
     event_type: str,
     data: Dict[str, Any],
-    webhook_url: str = 'http://localhost:8000/paystack/webhook/',
-    webhook_secret: str = 'test_webhook_secret'
+    webhook_url: str = 'http://localhost:8000/webhooks/paystack/',
+    secret_key: str = 'sk_test_xxxxx'
 ) -> requests.Response:
     """
     Convenience function to send test webhook
@@ -206,10 +184,10 @@ def send_test_webhook(
         event_type: Webhook event type
         data: Event data
         webhook_url: Local webhook URL
-        webhook_secret: Webhook secret
+        secret_key: Paystack secret key for HMAC signature
 
     Returns:
         Response from webhook endpoint
     """
-    tester = WebhookTester(webhook_url, webhook_secret)
+    tester = WebhookTester(webhook_url, secret_key)
     return tester.send_event(event_type, data)

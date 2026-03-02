@@ -40,7 +40,6 @@ def pytest_configure():
             },
             PAYSTACK={
                 'SECRET_KEY': 'sk_test_xxxxx',
-                'WEBHOOK_SECRET': 'test_webhook_secret',
                 'ENVIRONMENT': 'test',
                 'ENABLE_MODELS': True,
                 'ENABLE_SIGNALS': True,

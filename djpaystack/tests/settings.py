@@ -37,7 +37,6 @@ DATABASES = {
 PAYSTACK = {
     'SECRET_KEY': 'sk_test_xxxxxxxxxxxxx',
     'PUBLIC_KEY': 'pk_test_xxxxxxxxxxxxx',
-    'WEBHOOK_SECRET': 'test_webhook_secret',
     'ENVIRONMENT': 'test',
     'ENABLE_MODELS': True,
     'ENABLE_SIGNALS': True,

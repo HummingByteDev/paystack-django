@@ -40,35 +40,44 @@ class Command(BaseCommand):
         region = options['region']
         auth_token = options.get('auth_token')
 
-        self.stdout.write(self.style.SUCCESS('Starting ngrok tunnel for webhook development...'))
+        self.stdout.write(self.style.SUCCESS(
+            'Starting ngrok tunnel for webhook development...'))
         self.stdout.write(f'Django server port: {port}')
 
         try:
             tunnel = NgrokTunnel(port=port, region=region)
-            public_url = tunnel.start(subdomain=subdomain, auth_token=auth_token)
+            public_url = tunnel.start(
+                subdomain=subdomain, auth_token=auth_token)
 
             webhook_url = tunnel.get_webhook_url()
             dashboard_url = tunnel.get_dashboard_url()
 
-            self.stdout.write(self.style.SUCCESS('\n✓ Ngrok tunnel started successfully!\n'))
+            self.stdout.write(self.style.SUCCESS(
+                '\n✓ Ngrok tunnel started successfully!\n'))
             self.stdout.write(self.style.SUCCESS('━' * 70))
-            self.stdout.write(self.style.SUCCESS(f'\n📡 Public URL: {public_url}'))
-            self.stdout.write(self.style.SUCCESS(f'🔗 Webhook URL: {webhook_url}'))
-            self.stdout.write(self.style.SUCCESS(f'📊 Dashboard: {dashboard_url}'))
+            self.stdout.write(self.style.SUCCESS(
+                f'\n📡 Public URL: {public_url}'))
+            self.stdout.write(self.style.SUCCESS(
+                f'🔗 Webhook URL: {webhook_url}'))
+            self.stdout.write(self.style.SUCCESS(
+                f'📊 Dashboard: {dashboard_url}'))
             self.stdout.write(self.style.SUCCESS('\n━' * 70))
 
             self.stdout.write(self.style.WARNING('\n⚙️  Next steps:\n'))
             self.stdout.write('1. Make sure your Django server is running:')
             self.stdout.write(f'   python manage.py runserver {port}')
-            self.stdout.write('\n2. Add this webhook URL to your Paystack Dashboard:')
+            self.stdout.write(
+                '\n2. Add this webhook URL to your Paystack Dashboard:')
             self.stdout.write(f'   {webhook_url}')
-            self.stdout.write('\n3. Copy your webhook secret from Paystack Dashboard')
-            self.stdout.write('   and add it to your settings:\n')
+            self.stdout.write(
+                '\n3. Your Paystack SECRET_KEY is used for webhook')
+            self.stdout.write('   signature verification automatically.\n')
             self.stdout.write("   PAYSTACK = {")
-            self.stdout.write("       'WEBHOOK_SECRET': 'your_webhook_secret',")
+            self.stdout.write("       'SECRET_KEY': 'sk_...',")
             self.stdout.write("   }")
 
-            self.stdout.write(self.style.SUCCESS('\n✨ Ready to receive webhooks!\n'))
+            self.stdout.write(self.style.SUCCESS(
+                '\n✨ Ready to receive webhooks!\n'))
             self.stdout.write('Press Ctrl+C to stop the tunnel...\n')
 
             # Keep the tunnel running

@@ -89,7 +89,7 @@ and paste it in the
 
 .. code-block:: text
 
-   https://random-slug-here.trycloudflare.com/paystack/webhook/
+   https://random-slug-here.trycloudflare.com/webhooks/paystack/
 
 Using ``paystack_listen``
 =========================
@@ -115,7 +115,7 @@ Example output:
 
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
      Tunnel URL:   https://random-slug-here.trycloudflare.com
-     Webhook URL:  https://random-slug-here.trycloudflare.com/paystack/webhook/
+     Webhook URL:  https://random-slug-here.trycloudflare.com/webhooks/paystack/
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
      Next steps:
@@ -124,7 +124,7 @@ Example output:
           python manage.py runserver
 
      2. Add this webhook URL to your Paystack Dashboard:
-          https://random-slug-here.trycloudflare.com/paystack/webhook/
+          https://random-slug-here.trycloudflare.com/webhooks/paystack/
         https://dashboard.paystack.com/settings/developer
 
      3. Webhook signature verification uses your
@@ -140,7 +140,7 @@ Command Options
 
    --host HOST           Local server hostname (default: localhost)
    --port PORT           Local server port (default: 8000)
-   --webhook-path PATH   Webhook URL path (default: /paystack/webhook/)
+   --webhook-path PATH   Webhook URL path (default: /webhooks/paystack/)
 
 Examples:
 

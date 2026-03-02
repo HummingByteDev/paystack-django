@@ -29,7 +29,7 @@ class TestWebhookHandler(TestCase):
         ).hexdigest()
 
         with patch('djpaystack.webhooks.handlers.paystack_settings') as mock_settings:
-            mock_settings.WEBHOOK_SECRET = secret
+            mock_settings.SECRET_KEY = secret
 
             result = self.handler.verify_signature(payload, signature)
             assert result is True
@@ -41,7 +41,7 @@ class TestWebhookHandler(TestCase):
         invalid_signature = 'invalid_signature'
 
         with patch('djpaystack.webhooks.handlers.paystack_settings') as mock_settings:
-            mock_settings.WEBHOOK_SECRET = secret
+            mock_settings.SECRET_KEY = secret
 
             result = self.handler.verify_signature(payload, invalid_signature)
             assert result is False
@@ -78,11 +78,11 @@ class TestWebhookHandler(TestCase):
             # Should not raise exception (handlers return None by design)
             assert result is None
 
-    def test_missing_webhook_secret_rejects(self):
-        """Test that missing WEBHOOK_SECRET rejects requests"""
+    def test_missing_secret_key_rejects(self):
+        """Test that missing SECRET_KEY rejects requests"""
         payload = b'{"event": "charge.success", "data": {}}'
         with patch('djpaystack.webhooks.handlers.paystack_settings') as mock_settings:
-            mock_settings.WEBHOOK_SECRET = None
+            mock_settings.SECRET_KEY = None
 
             result = self.handler.verify_signature(payload, 'any_signature')
             assert result is False
@@ -163,10 +163,12 @@ class TestWebhookView(TestCase):
         )
 
         with patch('djpaystack.webhooks.views.paystack_settings') as mock_settings, \
+                patch('djpaystack.webhooks.handlers.paystack_settings') as mock_handler_settings, \
                 patch.object(webhook_handler, 'verify_ip', return_value=True):
-            mock_settings.WEBHOOK_SECRET = secret
+            mock_settings.SECRET_KEY = secret
             mock_settings.ENABLE_MODELS = False
             mock_settings.ENABLE_SIGNALS = False
+            mock_handler_settings.SECRET_KEY = secret
 
             response = self.view(request)
             assert response.status_code == 200

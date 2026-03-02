@@ -51,7 +51,6 @@ INSTALLED_APPS = [
 PAYSTACK = {
     'SECRET_KEY': 'sk_live_your_secret_key_here',
     'PUBLIC_KEY': 'pk_live_your_public_key_here',
-    'WEBHOOK_SECRET': 'whsec_your_webhook_secret',
 }
 ```
 
@@ -231,20 +230,15 @@ Listen for payment events using Django signals:
 
 ```python
 from django.dispatch import receiver
-from djpaystack.signals import paystack_payment_successful, paystack_payment_failed
+from djpaystack.signals import paystack_payment_successful
 
 @receiver(paystack_payment_successful)
-def on_payment_success(sender, transaction_data, **kwargs):
-    reference = transaction_data['reference']
+def on_payment_success(sender, data, **kwargs):
+    reference = data['reference']
     # Fulfil the order
-
-@receiver(paystack_payment_failed)
-def on_payment_failed(sender, transaction_data, **kwargs):
-    reference = transaction_data['reference']
-    # Notify the customer
 ```
 
-Available signals: `paystack_payment_successful`, `paystack_payment_failed`, `paystack_subscription_created`, `paystack_subscription_cancelled`, `paystack_transfer_successful`, `paystack_transfer_failed`, `paystack_refund_processed`, `paystack_dispute_created`, `paystack_dispute_resolved`.
+Available signals: `paystack_payment_successful`, `paystack_subscription_created`, `paystack_subscription_cancelled`, `paystack_transfer_successful`, `paystack_transfer_failed`, `paystack_refund_processed`, `paystack_dispute_created`, `paystack_dispute_resolved`.
 
 ## Configuration Reference
 
@@ -255,7 +249,6 @@ PAYSTACK = {
     'PUBLIC_KEY': 'pk_...',
 
     # Webhook
-    'WEBHOOK_SECRET': 'whsec_...',
     'ALLOWED_WEBHOOK_IPS': [],  # Empty = Paystack default IPs
 
     # API behaviour

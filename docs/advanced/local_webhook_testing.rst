@@ -81,7 +81,7 @@ Options
 .. code-block:: text
 
    event_type              Event type (e.g. charge.success)
-   --url URL               Target webhook URL (default: http://localhost:8000/paystack/webhook/)
+   --url URL               Target webhook URL (default: http://localhost:8000/webhooks/paystack/)
    --data JSON             Custom JSON payload (overrides sample data)
    --reference REF         Transaction reference (auto-generated if omitted)
    --amount KOBO           Amount in kobo (default: 50000)
@@ -131,7 +131,7 @@ For automated tests you can use the ``WebhookTester`` class directly:
    from djpaystack.dev.webhook_tester import WebhookTester
 
    tester = WebhookTester(
-       webhook_url='http://localhost:8000/paystack/webhook/',
+       webhook_url='http://localhost:8000/webhooks/paystack/',
        secret_key='sk_test_xxxxx',
    )
 

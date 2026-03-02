@@ -139,8 +139,8 @@ Django Signals
     )
 
     @receiver(paystack_payment_successful)
-    def on_payment(sender, transaction_data, **kwargs):
-        print(f"Paid: {transaction_data['reference']}")
+    def on_payment(sender, data, **kwargs):
+        print(f"Paid: {data['reference']}")
 
 Testing Webhooks Locally
 ------------------------
@@ -151,7 +151,7 @@ via a Cloudflare Tunnel:
 .. code-block:: bash
 
     python manage.py paystack_listen
-    # Displays https://xxxx.trycloudflare.com/paystack/webhook/
+    # Displays https://xxxx.trycloudflare.com/webhooks/paystack/
 
 Or send simulated events directly:
 

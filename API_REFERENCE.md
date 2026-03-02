@@ -447,7 +447,6 @@ PAYSTACK = {
     'VERIFY_SSL': True,
 
     # Optional - Webhooks
-    'WEBHOOK_SECRET': 'whsec_...',
     'CALLBACK_URL': 'https://yoursite.com/callback/',
     'ALLOWED_WEBHOOK_IPS': [],
 

@@ -255,7 +255,7 @@ response = client.transaction.initialize(
        is_valid = verify_webhook_signature(
            body=request.body,
            signature_header=request.META.get('HTTP_X_PAYSTACK_SIGNATURE'),
-           webhook_secret=settings.PAYSTACK['WEBHOOK_SECRET']
+           secret_key=settings.PAYSTACK['SECRET_KEY']
        )
 
        if not is_valid:
@@ -273,7 +273,7 @@ response = client.transaction.initialize(
 ```python
 # Check in Paystack dashboard
 PAYSTACK = {
-    'WEBHOOK_SECRET': 'whsec_xxxxx',  # Must match dashboard
+    'SECRET_KEY': 'sk_live_xxxxx',  # Must match dashboard
 }
 ```
 

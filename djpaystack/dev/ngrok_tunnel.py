@@ -60,7 +60,8 @@ class NgrokTunnel:
             subprocess.run(['ngrok', 'config', 'add-authtoken', auth_token])
 
         # Build ngrok command
-        cmd = ['ngrok', 'http', str(self.port), '--region', self.region, '--log', 'stdout']
+        cmd = ['ngrok', 'http', str(
+            self.port), '--region', self.region, '--log', 'stdout']
 
         if subdomain:
             cmd.extend(['--subdomain', subdomain])
@@ -82,7 +83,7 @@ class NgrokTunnel:
 
         if self.public_url:
             logger.info(f"✓ Ngrok tunnel started: {self.public_url}")
-            logger.info(f"✓ Webhook URL: {self.public_url}/paystack/webhook/")
+            logger.info(f"✓ Webhook URL: {self.public_url}/webhooks/paystack/")
             return self.public_url
         else:
             raise RuntimeError("Failed to start ngrok tunnel")
@@ -125,7 +126,7 @@ class NgrokTunnel:
         """Get webhook URL"""
         if not self.public_url:
             raise RuntimeError("Ngrok tunnel is not started")
-        return f"{self.public_url}/paystack/webhook/"
+        return f"{self.public_url}/webhooks/paystack/"
 
     def get_dashboard_url(self) -> str:
         """Get ngrok dashboard URL"""

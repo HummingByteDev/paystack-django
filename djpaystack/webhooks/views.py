@@ -99,3 +99,6 @@ class PaystackWebhookView(View):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+
+handle_webhook = PaystackWebhookView.as_view()

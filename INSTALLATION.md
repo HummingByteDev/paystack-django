@@ -51,7 +51,6 @@ Add Paystack configuration to your Django settings:
 PAYSTACK = {
     'SECRET_KEY': 'sk_live_your_secret_key',
     'PUBLIC_KEY': 'pk_live_your_public_key',
-    'WEBHOOK_SECRET': 'whsec_your_webhook_secret',  # Optional but recommended
     'ENVIRONMENT': 'production',  # or 'test'
 }
 ```
@@ -62,7 +61,6 @@ PAYSTACK = {
 2. Go to Settings → API Keys & Webhooks
 3. Copy your Secret Key (starts with `sk_`)
 4. Copy your Public Key (starts with `pk_`)
-5. Copy your Webhook Secret (starts with `whsec_`)
 
 ## Step 4: Secure Your Credentials
 
@@ -72,7 +70,6 @@ PAYSTACK = {
 # .env file (use python-decouple to load)
 PAYSTACK_SECRET_KEY=sk_live_xxx
 PAYSTACK_PUBLIC_KEY=pk_live_xxx
-PAYSTACK_WEBHOOK_SECRET=whsec_xxx
 ```
 
 ```python
@@ -82,7 +79,6 @@ from decouple import config
 PAYSTACK = {
     'SECRET_KEY': config('PAYSTACK_SECRET_KEY'),
     'PUBLIC_KEY': config('PAYSTACK_PUBLIC_KEY'),
-    'WEBHOOK_SECRET': config('PAYSTACK_WEBHOOK_SECRET'),
     'ENVIRONMENT': config('PAYSTACK_ENVIRONMENT', default='test'),
 }
 ```
@@ -152,7 +148,6 @@ PAYSTACK = {
     'PUBLIC_KEY': config('PAYSTACK_PUBLIC_KEY'),
 
     # Webhooks
-    'WEBHOOK_SECRET': config('PAYSTACK_WEBHOOK_SECRET'),
     'CALLBACK_URL': config('PAYSTACK_CALLBACK_URL', default='https://yoursite.com/callback/'),
 
     # Environment

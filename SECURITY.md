@@ -60,7 +60,7 @@ def handle_webhook(request):
     is_valid = verify_webhook_signature(
         body=request.body,
         signature_header=request.META.get('HTTP_X_PAYSTACK_SIGNATURE'),
-        webhook_secret=settings.PAYSTACK['WEBHOOK_SECRET']
+        secret_key=settings.PAYSTACK['SECRET_KEY']
     )
 
     if not is_valid:
