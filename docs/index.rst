@@ -1,10 +1,12 @@
-.. paystack-django documentation master file, created by sphinx-quickstart.
+.. paystack-django documentation master file
 
 ====================================================
 paystack-django: Django Paystack Payment Integration
 ====================================================
 
-**paystack-django** is a comprehensive Django integration for the `Paystack Payment Gateway <https://paystack.com>`_. This package provides a complete, production-ready solution for integrating Paystack payments into your Django applications.
+**paystack-django** is a comprehensive Django integration for the `Paystack Payment Gateway <https://paystack.com>`_.
+It provides 26 API modules, Django models, webhook handling with signature verification,
+Django signals, and production-ready defaults — everything you need to accept payments in your Django application.
 
 .. image:: https://badge.fury.io/py/paystack-django.svg
    :target: https://badge.fury.io/py/paystack-django
@@ -18,8 +20,9 @@ paystack-django: Django Paystack Payment Integration
 .. image:: https://img.shields.io/badge/License-MIT-yellow.svg
    :target: https://opensource.org/licenses/MIT
 
-**Features:**
+**Highlights:**
 
+<<<<<<< HEAD
 - **Broad Paystack API Coverage** - Clients for 25+ Paystack API categories
 - **Django Models** - Pre-built models for transactions, customers, plans, and more
 - **Webhook Support** - Built-in webhook handling and HMAC-SHA512 signature
@@ -27,6 +30,15 @@ paystack-django: Django Paystack Payment Integration
 - **Signal Support** - Django signals for payment events
 - **Type Hints** - Typed public interface with a shipped ``py.typed`` marker
 - **Comprehensive Documentation** - Detailed docs and examples
+=======
+- **26 API modules** — Transactions, Customers, Charge, Plans, Subscriptions, Transfers, Refunds, Disputes, Dedicated Accounts, Direct Debit, Splits, Subaccounts, Products, Pages, Payment Requests, Settlements, Bulk Charges, Terminal, Virtual Terminal, Apple Pay, Verification, Integration, Miscellaneous, Transfer Recipients, Transfer Control
+- **Django Models** — ``PaystackTransaction``, ``PaystackCustomer``, ``PaystackPlan``, ``PaystackSubscription``, ``PaystackTransfer``, ``PaystackWebhookEvent``
+- **Webhook System** — Signature-verified, IP-whitelisted, deduplicated event handling
+- **Django Signals** — 9 signals for payment lifecycle events
+- **System Checks** — Validates configuration at startup (``E001``, ``W001``)
+- **Context Manager** — ``PaystackClient`` supports ``with`` statements
+- **Type Hints** — Fully typed with ``py.typed`` marker
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 .. toctree::
    :maxdepth: 2
@@ -51,46 +63,53 @@ paystack-django: Django Paystack Payment Integration
    :caption: API Reference
 
    api/index
+   api/transactions
+   api/customers
+   api/subscriptions
+   api/payments
+   api/refunds
+   api/transfers
+   api/verification
+   api/dedicated_accounts
+   api/direct_debit
+   api/disputes
+   api/splits
+   api/terminal
+   api/miscellaneous
 
 .. toctree::
    :maxdepth: 2
    :caption: Advanced Topics
 
-   advanced/async
    advanced/signals
    advanced/testing
    advanced/webhooks
+   advanced/models
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contributing
+   :caption: Project
 
+   changelog
    contributing
    troubleshooting
 
-Quick Start
-===========
-
-Install the package:
-
-.. code-block:: bash
-
-   pip install paystack-django
-
-Add to your Django settings:
+Quick Example
+=============
 
 .. code-block:: python
 
-   INSTALLED_APPS = [
-       # ...
-       'djpaystack',
-   ]
+   from djpaystack import PaystackClient
 
-   PAYSTACK = {
-       'SECRET_KEY': 'your-paystack-secret-key',
-       'PUBLIC_KEY': 'your-paystack-public-key',
-   }
+   with PaystackClient() as client:
+       # Initialize a payment
+       response = client.transactions.initialize(
+           email='customer@example.com',
+           amount=50000,  # 500 NGN in kobo
+       )
+       print(response['data']['authorization_url'])
 
+<<<<<<< HEAD
 Initialize a transaction:
 
 .. code-block:: python
@@ -104,10 +123,17 @@ Initialize a transaction:
        reference='unique-reference-123',
    )
    print(response['data']['authorization_url'])
+=======
+       # Verify after payment
+       result = client.transactions.verify(reference=response['data']['reference'])
+       if result['data']['status'] == 'success':
+           print('Payment confirmed!')
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 Supported Services
 ==================
 
+<<<<<<< HEAD
 paystack-django provides clients for the following Paystack APIs. For the
 authoritative, endpoint-by-endpoint status, see the project's parity matrix.
 
@@ -123,6 +149,28 @@ authoritative, endpoint-by-endpoint status, see the project's parity matrix.
 - **Verification** (bank/account), **Integration**, **Apple Pay**
 - **Orders**, **Storefronts**
 - **Miscellaneous** (banks, countries, states)
+=======
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Category
+     - API Modules
+   * - **Payments**
+     - Transactions, Charge, Payment Requests, Pages
+   * - **Customers**
+     - Customers, Direct Debit, Dedicated Accounts
+   * - **Recurring**
+     - Plans, Subscriptions
+   * - **Payouts**
+     - Transfers, Transfer Recipients, Transfer Control
+   * - **Commerce**
+     - Products, Splits, Subaccounts
+   * - **Operations**
+     - Refunds, Disputes, Settlements, Bulk Charges
+   * - **Other**
+     - Verification, Terminal, Virtual Terminal, Apple Pay, Integration, Miscellaneous
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 Resources
 =========
@@ -131,20 +179,11 @@ Resources
 - `PyPI Package <https://pypi.org/project/paystack-django/>`_
 - `Paystack Official Documentation <https://paystack.com/docs>`_
 - `Report Issues <https://github.com/HummingByteDev/paystack-django/issues>`_
-- `GitHub Discussions <https://github.com/HummingByteDev/paystack-django/discussions>`_
-
-Support
-=======
-
-- 📚 `Full Documentation <https://paystack-django.readthedocs.io/>`_
-- 🐛 `Report Issues on GitHub <https://github.com/HummingByteDev/paystack-django/issues>`_
-- 💬 `Join Discussions <https://github.com/HummingByteDev/paystack-django/discussions>`_
-- 📧 `Email Support <dev@hummingbyte.org>`_
 
 License
 =======
 
-This project is licensed under the MIT License. See the `LICENSE <https://github.com/HummingByteDev/paystack-django/blob/main/LICENSE>`_ file for details.
+MIT License — see the `LICENSE <https://github.com/HummingByteDev/paystack-django/blob/main/LICENSE>`_ file.
 
 Indices and tables
 ==================

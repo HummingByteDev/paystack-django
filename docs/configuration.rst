@@ -3,18 +3,15 @@
 Configuration
 =============
 
-Django Settings
----------------
+All configuration lives in one dictionary in your Django ``settings.py``.
 
-Add the following to your ``settings.py`` to configure paystack-django:
-
-Basic Configuration
-~~~~~~~~~~~~~~~~~~~
+Minimal Setup
+-------------
 
 .. code-block:: python
 
     INSTALLED_APPS = [
-        # ... other apps
+        # ...
         'djpaystack',
     ]
 
@@ -23,8 +20,9 @@ Basic Configuration
         'PUBLIC_KEY': 'pk_test_your_public_key',
     }
 
-Get your keys from `Paystack Dashboard <https://dashboard.paystack.com/settings/developer>`_.
+Get your keys from the `Paystack Dashboard <https://dashboard.paystack.com/settings/developer>`_.
 
+<<<<<<< HEAD
 Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -117,66 +115,155 @@ Database Setup
 --------------
 
 Run migrations to create the necessary tables:
+=======
+Then run migrations:
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 .. code-block:: bash
 
     python manage.py migrate djpaystack
 
-Webhook Configuration
+Environment Variables
 ---------------------
 
-**In Django URLs:**
-
-Add the webhook endpoint to your ``urls.py``:
+Never hard-code secrets. Use ``os.environ``, ``django-environ``, or any config loader:
 
 .. code-block:: python
 
-    from django.urls import path
-    from djpaystack.webhooks.views import webhook
+    import os
 
-    urlpatterns = [
-        path('api/webhooks/paystack/', webhook, name='paystack-webhook'),
-    ]
+    PAYSTACK = {
+        'SECRET_KEY': os.environ['PAYSTACK_SECRET_KEY'],
+        'PUBLIC_KEY': os.environ['PAYSTACK_PUBLIC_KEY'],
+        'WEBHOOK_SECRET': os.environ.get('PAYSTACK_WEBHOOK_SECRET', ''),
+    }
 
-**In Paystack Dashboard:**
-
-1. Go to `Settings > API Keys & Webhooks <https://dashboard.paystack.com/settings/developer>`_
-2. Add your webhook URL: ``https://yourdomain.com/api/webhooks/paystack/``
-3. Enable webhook events you want to receive (recommended: charge.success, charge.failed)
-
-**Webhook Secret:**
-
-Store the webhook secret from the dashboard:
+Full Configuration
+------------------
 
 .. code-block:: python
 
     PAYSTACK = {
-        # ... other settings
-        'WEBHOOK_SECRET': 'whsec_your_webhook_secret_from_dashboard',
+        # Required
+        'SECRET_KEY': 'sk_...',          # Paystack secret API key
+        'PUBLIC_KEY': 'pk_...',          # Paystack public API key
+
+        # Webhook
+        'WEBHOOK_SECRET': 'whsec_...',   # HMAC SHA-512 verification
+        'ALLOWED_WEBHOOK_IPS': [],       # Empty = Paystack default IPs
+
+        # API behaviour
+        'BASE_URL': 'https://api.paystack.co',
+        'TIMEOUT': 30,                   # Request timeout (seconds)
+        'MAX_RETRIES': 3,                # Automatic retries on 429/5xx
+        'VERIFY_SSL': True,
+        'CURRENCY': 'NGN',
+        'ENVIRONMENT': 'production',     # 'production' or 'test'
+
+        # Features
+        'AUTO_VERIFY_TRANSACTIONS': True,
+        'ENABLE_SIGNALS': True,          # Send Django signals on webhooks
+        'ENABLE_MODELS': True,           # Auto-save to Django models
+        'CACHE_TIMEOUT': 300,            # Seconds
+        'CALLBACK_URL': None,            # Default redirect URL
+
+        # Logging
+        'LOG_REQUESTS': False,
+        'LOG_RESPONSES': False,
     }
 
-Testing Configuration
----------------------
+Configuration Reference
+-----------------------
 
-Use test keys for development:
+.. list-table::
+   :header-rows: 1
+   :widths: 25 50 25
 
-.. code-block:: python
+   * - Setting
+     - Purpose
+     - Default
+   * - ``SECRET_KEY``
+     - Paystack secret API key (**required**)
+     - ``None``
+   * - ``PUBLIC_KEY``
+     - Paystack public API key (**required**)
+     - ``None``
+   * - ``WEBHOOK_SECRET``
+     - HMAC SHA-512 webhook signature secret
+     - ``None``
+   * - ``ALLOWED_WEBHOOK_IPS``
+     - List of IPs to accept webhooks from. Empty list uses Paystack defaults.
+     - ``[]``
+   * - ``BASE_URL``
+     - Paystack API base URL
+     - ``https://api.paystack.co``
+   * - ``TIMEOUT``
+     - HTTP request timeout in seconds
+     - ``30``
+   * - ``MAX_RETRIES``
+     - Retries on 429 / 5xx responses
+     - ``3``
+   * - ``VERIFY_SSL``
+     - Verify SSL certificates
+     - ``True``
+   * - ``CURRENCY``
+     - Default currency code
+     - ``NGN``
+   * - ``ENVIRONMENT``
+     - ``'production'`` or ``'test'``
+     - ``production``
+   * - ``AUTO_VERIFY_TRANSACTIONS``
+     - Auto-verify transactions on webhook receipt
+     - ``True``
+   * - ``ENABLE_SIGNALS``
+     - Dispatch Django signals on webhook events
+     - ``True``
+   * - ``ENABLE_MODELS``
+     - Persist webhook data to Django models
+     - ``True``
+   * - ``CACHE_TIMEOUT``
+     - Cache TTL in seconds
+     - ``300``
+   * - ``CALLBACK_URL``
+     - Default callback URL for transactions
+     - ``None``
+   * - ``LOG_REQUESTS``
+     - Log outgoing API requests
+     - ``False``
+   * - ``LOG_RESPONSES``
+     - Log API responses
+     - ``False``
 
-    if DEBUG:
-        PAYSTACK = {
-            'SECRET_KEY': 'sk_test_...',
-            'PUBLIC_KEY': 'pk_test_...',
-        }
-    else:
-        PAYSTACK = {
-            'SECRET_KEY': 'sk_live_...',
-            'PUBLIC_KEY': 'pk_live_...',
-        }
+System Checks
+-------------
 
-Logging Configuration
----------------------
+On startup, ``djpaystack`` registers two Django system checks:
 
-Configure logging to debug Paystack requests:
+- **djpaystack.E001** — ``PAYSTACK['SECRET_KEY']`` is missing (error, blocks startup).
+- **djpaystack.W001** — ``PAYSTACK['WEBHOOK_SECRET']`` is missing (warning).
+
+Webhook Setup
+-------------
+
+1. Add the endpoint to ``urls.py``:
+
+   .. code-block:: python
+
+       from django.urls import path
+       from djpaystack.webhooks.views import handle_webhook
+
+       urlpatterns = [
+           path('webhooks/paystack/', handle_webhook, name='paystack-webhook'),
+       ]
+
+2. In the `Paystack Dashboard <https://dashboard.paystack.com/settings/developer>`_,
+   set your webhook URL to ``https://yourdomain.com/webhooks/paystack/`` and copy the
+   webhook secret into ``PAYSTACK['WEBHOOK_SECRET']``.
+
+Logging
+-------
+
+All log output uses the ``djpaystack`` logger name:
 
 .. code-block:: python
 
@@ -184,7 +271,7 @@ Configure logging to debug Paystack requests:
         'version': 1,
         'disable_existing_loggers': False,
         'handlers': {
-            'paystack_file': {
+            'paystack': {
                 'level': 'DEBUG',
                 'class': 'logging.FileHandler',
                 'filename': 'paystack.log',
@@ -192,87 +279,36 @@ Configure logging to debug Paystack requests:
         },
         'loggers': {
             'djpaystack': {
-                'handlers': ['paystack_file'],
+                'handlers': ['paystack'],
                 'level': 'DEBUG',
                 'propagate': True,
             },
         },
     }
 
-Celery Configuration (Optional)
--------------------------------
-
-For async processing of webhooks:
-
-.. code-block:: python
-
-    CELERY_BROKER_URL = 'redis://localhost:6379'
-    CELERY_RESULT_BACKEND = 'redis://localhost:6379'
-    
-    PAYSTACK = {
-        # ... other settings
-        'USE_CELERY': True,
-    }
-
-Environment-Specific Configuration
------------------------------------
+Environment-Specific Examples
+-----------------------------
 
 **Development:**
 
 .. code-block:: python
 
-    # settings/development.py
-    DEBUG = True
     PAYSTACK = {
-        'SECRET_KEY': 'sk_test_dev_key',
-        'PUBLIC_KEY': 'pk_test_dev_key',
+        'SECRET_KEY': 'sk_test_...',
+        'PUBLIC_KEY': 'pk_test_...',
+        'LOG_REQUESTS': True,
+        'LOG_RESPONSES': True,
     }
 
 **Production:**
 
 .. code-block:: python
 
-    # settings/production.py
-    DEBUG = False
+    import os
+
     PAYSTACK = {
-        'SECRET_KEY': 'sk_live_production_key',
-        'PUBLIC_KEY': 'pk_live_production_key',
-        'WEBHOOK_SECRET': 'whsec_production_secret',
+        'SECRET_KEY': os.environ['PAYSTACK_SECRET_KEY'],
+        'PUBLIC_KEY': os.environ['PAYSTACK_PUBLIC_KEY'],
+        'WEBHOOK_SECRET': os.environ['PAYSTACK_WEBHOOK_SECRET'],
+        'ENVIRONMENT': 'production',
     }
-
-Configuration Reference
------------------------
-
-=========================== ============================================= ===============================================
-Setting                     Purpose                                       Default Value
-=========================== ============================================= ===============================================
-``SECRET_KEY``              Paystack secret API key (required)            None
-``PUBLIC_KEY``              Paystack public API key (required)            None
-``WEBHOOK_SECRET``          Webhook verification secret                   None
-``WEBHOOK_TIMEOUT``         Webhook request timeout in seconds             60
-``API_TIMEOUT``             API request timeout in seconds                30
-``API_RETRIES``             Number of retries for failed API requests     3
-``LOG_REQUESTS``            Whether to log all API requests               True
-``LOG_FILE``                Path to log file                              'paystack.log'
-``BUSINESS_NAME``           Your business name for receipts               None
-``BUSINESS_EMAIL``          Your business email                           None
-=========================== ============================================= ===============================================
-
-Validation
-----------
-
-The package validates your configuration on startup. Common errors:
-
-**Missing SECRET_KEY:**
-
-.. code-block:: text
-
-    PaystackConfigurationError: PAYSTACK['SECRET_KEY'] is required
-
-**Missing PUBLIC_KEY:**
-
-.. code-block:: text
-
-    PaystackConfigurationError: PAYSTACK['PUBLIC_KEY'] is required
-
-Make sure both keys are set in your Django settings.

@@ -1,11 +1,29 @@
+<<<<<<< HEAD
 from typing import Any, Dict, Optional
 
+=======
+"""
+Charge API
+https://paystack.com/docs/api/charge/
+"""
+from typing import Dict, Any, Optional
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 from .base import BaseAPI
 
 
 class ChargeAPI(BaseAPI):
-    """Charge API"""
+    """
+    Paystack Charge API
 
+<<<<<<< HEAD
+=======
+    The Charge API allows you to configure payment channel of your choice
+    when initiating a payment. It exposes the core components powering the 
+    Paystack checkout, supporting cards, bank accounts, USSD, mobile money,
+    bank transfers, EFT, QR codes, and more.
+    """
+
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
     def create(
         self,
         email: str,
@@ -17,6 +35,7 @@ class ChargeAPI(BaseAPI):
         reference: Optional[str] = None,
         ussd: Optional[Dict[str, Any]] = None,
         mobile_money: Optional[Dict[str, Any]] = None,
+<<<<<<< HEAD
         device_id: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
@@ -33,6 +52,41 @@ class ChargeAPI(BaseAPI):
             mobile_money=mobile_money,
             device_id=device_id,
             **kwargs,
+=======
+        bank_transfer: Optional[Dict[str, Any]] = None,
+        eft: Optional[Dict[str, Any]] = None,
+        qr: Optional[Dict[str, Any]] = None,
+        device_id: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Create a charge.
+
+        Args:
+            email: Customer's email address
+            amount: Amount in the subunit of the supported currency
+            bank: Bank account object with 'code' and 'account_number'
+            authorization_code: Authorization code for recurring charges
+            pin: Customer's PIN (for card charges)
+            metadata: Additional charge metadata
+            reference: Unique transaction reference
+            ussd: USSD object with 'type' (e.g. '737' for GTBank)
+            mobile_money: Mobile money object with 'phone' and 'provider'
+            bank_transfer: Bank transfer object with optional 'account_expires_at'
+                           (Pay with Transfer / Pesalink)
+            eft: EFT object with 'provider' (e.g. 'ozow' for South Africa)
+            qr: QR code object with 'provider' (e.g. 'scan-to-pay' for South Africa)
+            device_id: Device ID for terminal charges
+
+        Returns:
+            Charge response with status indicating next step
+        """
+        data = self._build_query_params(
+            email=email, amount=amount, bank=bank, authorization_code=authorization_code,
+            pin=pin, metadata=metadata, reference=reference, ussd=ussd,
+            mobile_money=mobile_money, bank_transfer=bank_transfer,
+            eft=eft, qr=qr, device_id=device_id, **kwargs
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
         )
         return self._post("charge", data=data)
 

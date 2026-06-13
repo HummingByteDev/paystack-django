@@ -164,9 +164,9 @@ class PaystackClient:
 
         # Log request if enabled
         if paystack_settings.LOG_REQUESTS:
-            logger.info(f"Paystack Request: {method} {url}")
+            logger.info("Paystack Request: %s %s", method, url)
             if data:
-                logger.debug(f"Request Data: {data}")
+                logger.debug("Request Data: %s", data)
 
         try:
             response = self.session.request(
@@ -182,8 +182,8 @@ class PaystackClient:
 
             # Log response if enabled
             if paystack_settings.LOG_RESPONSES:
-                logger.info(f"Paystack Response: {response.status_code}")
-                logger.debug(f"Response Data: {response.text}")
+                logger.info("Paystack Response: %s", response.status_code)
+                logger.debug("Response Data: %s", response.text)
 
             # Parse JSON response
             try:
@@ -209,7 +209,7 @@ class PaystackClient:
             return response_data
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Paystack network error: {str(e)}")
+            logger.error("Paystack network error: %s", e)
             raise PaystackNetworkError(f"Network request failed: {str(e)}")
 
     def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -238,3 +238,10 @@ class PaystackClient:
         """Close session"""
         if self.session:
             self.session.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False

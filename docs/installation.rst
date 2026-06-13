@@ -8,21 +8,23 @@ Prerequisites
 
 - Python 3.8 or higher
 - Django 3.2 or higher
-- pip or Poetry
+- pip (or Poetry / PDM)
 
 Install from PyPI
 -----------------
-
-The recommended way to install paystack-django is using pip:
 
 .. code-block:: bash
 
     pip install paystack-django
 
+With development extras:
+
+.. code-block:: bash
+
+    pip install paystack-django[dev]
+
 Install for Development
 -----------------------
-
-If you want to contribute or develop locally:
 
 .. code-block:: bash
 
@@ -30,62 +32,68 @@ If you want to contribute or develop locally:
     cd django-paystack
     pip install -e ".[dev]"
 
-Docker Installation
--------------------
+Docker
+------
 
-If you're using Docker, add this to your requirements.txt:
+Add to your ``requirements.txt``:
 
 .. code-block:: text
 
-    paystack-django>=1.0.0
-    Django>=3.2
-
-Then install in your Dockerfile:
-
-.. code-block:: dockerfile
-
-    FROM python:3.11-slim
-
-    WORKDIR /app
-
-    COPY requirements.txt .
-    RUN pip install -r requirements.txt
-
-    COPY . .
-
-    CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    paystack-django>=1.1.0
 
 Verify Installation
 -------------------
 
-After installation, verify that the package is properly installed:
-
 .. code-block:: bash
 
     python -c "import djpaystack; print(djpaystack.__version__)"
+    # 1.1.0
+
+Django Setup
+------------
+
+Add ``djpaystack`` to ``INSTALLED_APPS`` and run migrations:
+
+.. code-block:: python
+
+    INSTALLED_APPS = [
+        # ...
+        'djpaystack',
+    ]
+
+.. code-block:: bash
+
+    python manage.py migrate djpaystack
+
+On startup, Django system checks will verify that ``PAYSTACK['SECRET_KEY']`` is configured
+(error ``djpaystack.E001``) and warn if ``PAYSTACK['WEBHOOK_SECRET']`` is missing
+(warning ``djpaystack.W001``).
+
+Dependencies
+------------
+
+``paystack-django`` installs the following automatically:
+
+- ``Django >= 3.2``
+- ``requests >= 2.25.0``
+- ``urllib3 >= 1.26.0``
+
+No other dependencies are required. Configuration values are read from Django's
+``settings.PAYSTACK`` dictionary — use ``os.environ``, ``django-environ``, or any
+config loader of your choice.
 
 Troubleshooting
 ---------------
 
 **ImportError: No module named 'djpaystack'**
 
-Make sure you've installed the package:
+Ensure the package is installed in the correct virtual environment:
 
 .. code-block:: bash
 
     pip install paystack-django
 
-**ModuleNotFoundError: No module named 'django'**
-
-Install Django:
-
-.. code-block:: bash
-
-    pip install "Django>=3.2"
-
 **SSL Certificate or Proxy Issues**
-
-If you're behind a corporate proxy:
 
 .. code-block:: bash
 
@@ -94,4 +102,4 @@ If you're behind a corporate proxy:
 Next Steps
 ----------
 
-Once installed, proceed to :ref:`configuration` to set up your Django settings.
+Once installed, proceed to :ref:`configuration` to set up your API keys.

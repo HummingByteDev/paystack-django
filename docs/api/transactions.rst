@@ -8,26 +8,29 @@ Transactions API
    :undoc-members:
    :show-inheritance:
 
-Example Usage
--------------
+Quick Reference
+---------------
 
 .. code-block:: python
 
-    from djpaystack.api.transactions import Transaction
+    from djpaystack import PaystackClient
+    client = PaystackClient()
 
-    transaction = Transaction()
-    
-    # Initialize
-    response = transaction.initialize(
-        email='customer@example.com',
-        amount=50000
-    )
-    
+    # Initialize (with optional dynamic split)
+    client.transactions.initialize(email=..., amount=..., split={...})
+
     # Verify
-    response = transaction.verify('ref-123')
-    
-    # List
-    response = transaction.list()
-    
-    # Fetch
-    response = transaction.fetch(transaction_id=123)
+    client.transactions.verify(reference=...)
+
+    # Charge saved authorization (with optional split_code)
+    client.transactions.charge_authorization(
+        authorization_code=..., email=..., amount=...,
+        split_code=..., callback_url=...,
+    )
+
+    # List / Fetch / Timeline / Export / Totals
+    client.transactions.list(page=1, per_page=50)
+    client.transactions.fetch(id=...)
+    client.transactions.timeline(id_or_reference=...)
+    client.transactions.export(from_=..., to=...)
+    client.transactions.totals()

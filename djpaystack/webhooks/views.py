@@ -27,6 +27,15 @@ class PaystackWebhookView(View):
     def post(self, request, *args, **kwargs):
         """Handle POST request from Paystack webhook"""
 
+        # Verify IP address
+        client_ip = self._get_client_ip(request)
+        if not webhook_handler.verify_ip(client_ip or ''):
+            logger.warning(
+                "Webhook request from unauthorized IP: %s", client_ip)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Unauthorized IP'}, status=403
+            )
+
         # Get signature header
         signature = request.headers.get("X-Paystack-Signature")
         if not signature:
@@ -59,11 +68,24 @@ class PaystackWebhookView(View):
 
         webhook_event = None
         if paystack_settings.ENABLE_MODELS:
+<<<<<<< HEAD
             webhook_event, created = self._store_event(request, event_type, event_id, payload)
             if not created:
                 # Another delivery already created (and owns) this event.
                 logger.info(f"Duplicate webhook ignored: {event_id}")
                 return JsonResponse({"status": "success", "message": "duplicate"})
+=======
+            try:
+                webhook_event = PaystackWebhookEvent.objects.create(
+                    event_type=event_type,
+                    event_id=f"{event_type}_{data.get('reference', data.get('id', ''))}",
+                    data=payload,
+                    ip_address=self._get_client_ip(request),
+                    user_agent=request.headers.get('User-Agent', ''),
+                )
+            except Exception as e:
+                logger.error("Failed to store webhook event: %s", e)
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
         # Handle event (only the creator of the row reaches here for a given id)
         try:
@@ -76,7 +98,7 @@ class PaystackWebhookView(View):
             return JsonResponse({"status": "success"})
 
         except PaystackWebhookError as e:
-            logger.error(f"Webhook handling error: {str(e)}")
+            logger.error("Webhook handling error: %s", e)
 
             if webhook_event:
                 webhook_event.processing_error = str(e)
@@ -112,5 +134,9 @@ class PaystackWebhookView(View):
         if x_forwarded_for:
             ip = x_forwarded_for.split(",")[0].strip()
         else:
+<<<<<<< HEAD
             ip = request.META.get("REMOTE_ADDR")
+=======
+            ip = request.META.get('REMOTE_ADDR')
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
         return ip

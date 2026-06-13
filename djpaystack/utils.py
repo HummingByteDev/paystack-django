@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 import hashlib
+=======
+
+import hashlib
+import hmac
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 import uuid
 from decimal import Decimal
+from typing import Optional, Union
 
 
 def generate_reference(prefix: str = "PS") -> str:
@@ -30,17 +37,17 @@ def kobo_to_naira(kobo: int) -> Decimal:
     return Decimal(kobo) / 100
 
 
-def naira_to_kobo(naira: float) -> int:
+def naira_to_kobo(naira: Union[float, Decimal]) -> int:
     """
     Convert naira to kobo
 
     Args:
-        naira: Amount in naira
+        naira: Amount in naira (float or Decimal)
 
     Returns:
         Amount in kobo
     """
-    return int(naira * 100)
+    return int(Decimal(str(naira)) * 100)
 
 
 def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> bool:
@@ -55,9 +62,17 @@ def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> boo
     Returns:
         True if signature is valid
     """
+<<<<<<< HEAD
     import hmac
 
     computed_signature = hmac.new(secret.encode("utf-8"), payload, hashlib.sha512).hexdigest()
+=======
+    computed_signature = hmac.new(
+        secret.encode('utf-8'),
+        payload,
+        hashlib.sha512
+    ).hexdigest()
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
     return hmac.compare_digest(computed_signature, signature)
 
 

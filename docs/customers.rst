@@ -3,71 +3,107 @@
 Customers
 =========
 
-Manage customer information with the Customers API.
-
-Creating a Customer
--------------------
+Manage customer records, validate identities, and control risk actions.
 
 .. code-block:: python
 
-    from djpaystack.api.customers import Customer
+    from djpaystack import PaystackClient
+    client = PaystackClient()
 
-    customer = Customer()
-    response = customer.create(
-        email='customer@example.com',
-        first_name='John',
-        last_name='Doe',
-        phone='9012345678',
-        metadata={
-            'customer_id': 123,
-            'registration_date': '2024-01-15'
-        }
-    )
-
-    if response['status']:
-        customer_id = response['data']['customer_code']
-
-Listing Customers
+Create a Customer
 -----------------
 
 .. code-block:: python
 
-    from djpaystack.api.customers import Customer
+    response = client.customers.create(
+        email='customer@example.com',
+        first_name='John',
+        last_name='Doe',
+        phone='2348012345678',
+        metadata={'source': 'web'},
+    )
+    customer_code = response['data']['customer_code']
 
-    customer = Customer()
-    response = customer.list(page=1, per_page=50)
+List Customers
+--------------
 
-    if response['status']:
-        customers = response['data']
-        for cust in customers:
-            print(f"{cust['email']} - {cust['first_name']}")
+.. code-block:: python
 
-Getting Customer Details
+    response = client.customers.list(page=1, per_page=50)
+
+Fetch a Customer
+----------------
+
+.. code-block:: python
+
+    response = client.customers.fetch(email_or_code='CUS_xxxxx')
+
+Update a Customer
+-----------------
+
+.. code-block:: python
+
+    response = client.customers.update(
+        code='CUS_xxxxx',
+        first_name='Jane',
+        last_name='Smith',
+    )
+
+Validate a Customer
+-------------------
+
+Submit identity information (BVN, bank account) for validation:
+
+.. code-block:: python
+
+    response = client.customers.validate(
+        code='CUS_xxxxx',
+        first_name='John',
+        last_name='Doe',
+        type='bank_account',
+        value='0123456789',
+        country='NG',
+        bvn='12345678901',
+        bank_code='058',
+        account_number='0123456789',
+    )
+
+Risk Action
+-----------
+
+Whitelist or blacklist a customer:
+
+.. code-block:: python
+
+    # Whitelist
+    response = client.customers.set_risk_action(
+        customer='CUS_xxxxx',
+        risk_action='allow',
+    )
+
+    # Blacklist
+    response = client.customers.set_risk_action(
+        customer='CUS_xxxxx',
+        risk_action='deny',
+    )
+
+Deactivate Authorization
 ------------------------
 
 .. code-block:: python
 
-    from djpaystack.api.customers import Customer
+    response = client.customers.deactivate_authorization(
+        authorization_code='AUTH_xxxxx',
+    )
 
-    customer = Customer()
-    response = customer.fetch(customer_id=12345)
+Django Model
+------------
 
-    if response['status']:
-        customer_data = response['data']
-
-Updating a Customer
--------------------
+Customers are automatically saved when webhooks arrive (if ``ENABLE_MODELS`` is ``True``):
 
 .. code-block:: python
 
-    from djpaystack.api.customers import Customer
+    from djpaystack.models import PaystackCustomer
 
-    customer = Customer()
-    response = customer.update(
-        code=customer_code,
-        first_name='Jane',
-        last_name='Smith',
-        phone='9112345678'
-    )
-
-For more details, see the :ref:`api/customers` reference.
+    customer = PaystackCustomer.objects.get(customer_code='CUS_xxxxx')
+    print(customer.email, customer.first_name)

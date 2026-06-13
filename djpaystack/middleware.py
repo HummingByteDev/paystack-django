@@ -14,7 +14,8 @@ class PaystackLoggingMiddleware(MiddlewareMixin):
         """Log incoming requests to webhook endpoints"""
         if request.path.startswith("/paystack/webhook"):
             logger.info(
-                f"Paystack webhook request: {request.method} {request.path} "
-                f"from {request.META.get('REMOTE_ADDR')}"
+                "Paystack webhook request: %s %s from %s",
+                request.method, request.path,
+                request.META.get('REMOTE_ADDR'),
             )
         return None

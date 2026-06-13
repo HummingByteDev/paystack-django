@@ -17,6 +17,9 @@ class WebhookEvent(str, Enum):
     TRANSFER_FAILED = "transfer.failed"
     TRANSFER_REVERSED = "transfer.reversed"
 
+    # Bank Transfer Events
+    BANK_TRANSFER_REJECTED = 'bank.transfer.rejected'
+
     # Subscription Events
     SUBSCRIPTION_CREATE = "subscription.create"
     SUBSCRIPTION_DISABLE = "subscription.disable"
@@ -28,6 +31,7 @@ class WebhookEvent(str, Enum):
     INVOICE_UPDATE = "invoice.update"
     INVOICE_PAYMENT_FAILED = "invoice.payment_failed"
 
+<<<<<<< HEAD
     # Customer Events
     CUSTOMERIDENTIFICATION_SUCCESS = "customeridentification.success"
     CUSTOMERIDENTIFICATION_FAILED = "customeridentification.failed"
@@ -42,10 +46,31 @@ class WebhookEvent(str, Enum):
     DISPUTE_CREATE = "charge.dispute.create"
     DISPUTE_REMIND = "charge.dispute.remind"
     DISPUTE_RESOLVE = "charge.dispute.resolve"
+=======
+    # Customer Identification Events
+    CUSTOMERIDENTIFICATION_SUCCESS = 'customeridentification.success'
+    CUSTOMERIDENTIFICATION_FAILED = 'customeridentification.failed'
+
+    # Refund Events
+    REFUND_PENDING = 'refund.pending'
+    REFUND_PROCESSING = 'refund.processing'
+    REFUND_NEEDS_ATTENTION = 'refund.needs-attention'
+    REFUND_PROCESSED = 'refund.processed'
+    REFUND_FAILED = 'refund.failed'
+
+    # Dispute Events (Paystack sends these as charge.dispute.*)
+    CHARGE_DISPUTE_CREATE = 'charge.dispute.create'
+    CHARGE_DISPUTE_REMIND = 'charge.dispute.remind'
+    CHARGE_DISPUTE_RESOLVE = 'charge.dispute.resolve'
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
     # Dedicated Account Events
     DEDICATEDACCOUNT_ASSIGN_SUCCESS = "dedicatedaccount.assign.success"
     DEDICATEDACCOUNT_ASSIGN_FAILED = "dedicatedaccount.assign.failed"
+
+    # Direct Debit Events
+    DIRECT_DEBIT_AUTHORIZATION_CREATED = 'direct_debit.authorization.created'
+    DIRECT_DEBIT_AUTHORIZATION_ACTIVE = 'direct_debit.authorization.active'
 
     # Payment Request Events
     PAYMENTREQUEST_PENDING = "paymentrequest.pending"

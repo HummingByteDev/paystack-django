@@ -15,6 +15,7 @@ A comprehensive Django integration for the **Paystack Payment Gateway**. This pa
 
 ## Features
 
+<<<<<<< HEAD
 - **Full Paystack API Coverage** - Django-native clients for every Paystack API category
 - **Django Models** - Pre-built models for transactions, customers, plans, subscriptions, transfers, and webhook events
 - **Webhook Support** - Built-in webhook handling, HMAC-SHA512 signature verification (fails closed), and race-safe deduplication
@@ -56,21 +57,34 @@ The package provides Django-native clients for the following Paystack APIs.
 
 > Some list endpoints currently support page-based pagination; cursor-based
 > pagination is on the roadmap. See the parity matrix for per-endpoint detail.
+=======
+- **Complete Paystack API Coverage** — 26 API modules covering every Paystack endpoint
+- **Django Models** — Pre-built models for transactions, customers, plans, subscriptions, transfers, and webhook events
+- **Webhook System** — Signature-verified webhook handling with IP whitelisting and event deduplication
+- **Django Signals** — Signals for payment success/failure, subscriptions, transfers, refunds, and disputes
+- **System Checks** — Django startup checks validate your Paystack configuration
+- **Context Manager** — `PaystackClient` supports `with` statements for clean session management
+- **Retry & Backoff** — Automatic retries with exponential back-off on transient failures
+- **Type Hints** — Fully typed with `py.typed` marker for IDE and mypy support
+- **Production Ready** — Secure defaults, lazy logging, Decimal-safe currency conversion
+
+## Supported Services
+
+| Category | API Modules |
+|----------|------------|
+| **Payments** | Transactions, Charge, Payment Requests, Pages |
+| **Customers** | Customers, Direct Debit, Dedicated Accounts |
+| **Recurring** | Plans, Subscriptions |
+| **Payouts** | Transfers, Transfer Recipients, Transfer Control |
+| **Commerce** | Products, Splits, Subaccounts |
+| **Operations** | Refunds, Disputes, Settlements, Bulk Charges |
+| **Other** | Verification, Terminal, Virtual Terminal, Apple Pay, Integration, Miscellaneous |
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 ## Installation
 
-Install using pip:
-
 ```bash
 pip install paystack-django
-```
-
-Or install from source:
-
-```bash
-git clone https://github.com/HummingByteDev/paystack-django.git
-cd django-paystack
-pip install -e .
 ```
 
 ## Quick Start
@@ -79,7 +93,6 @@ pip install -e .
 
 ```python
 # settings.py
-
 INSTALLED_APPS = [
     # ...
     'djpaystack',
@@ -88,6 +101,7 @@ INSTALLED_APPS = [
 PAYSTACK = {
     'SECRET_KEY': 'sk_live_your_secret_key_here',
     'PUBLIC_KEY': 'pk_live_your_public_key_here',
+<<<<<<< HEAD
     'ENVIRONMENT': 'production',  # or 'test'
 }
 ```
@@ -97,26 +111,43 @@ PAYSTACK = {
 > signing key can be resolved (fail closed).
 
 ### 2. Create PaystackClient Instance
+=======
+    'WEBHOOK_SECRET': 'whsec_your_webhook_secret',
+}
+```
+
+### 2. Run Migrations
+
+```bash
+python manage.py migrate djpaystack
+```
+
+### 3. Initialize a Transaction
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 ```python
 from djpaystack import PaystackClient
 
 client = PaystackClient()
 
+<<<<<<< HEAD
 # Initialize a transaction
+=======
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 response = client.transactions.initialize(
     email='customer@example.com',
-    amount=50000,  # in kobo (500 NGN)
-    reference='unique-reference-123'
+    amount=50000,  # Amount in kobo (500 NGN)
+    reference='order-001',
 )
 
 authorization_url = response['data']['authorization_url']
-print(f"Redirect user to: {authorization_url}")
+# Redirect user to authorization_url
 ```
 
-### 3. Verify Transaction
+The client can also be used as a context manager:
 
 ```python
+<<<<<<< HEAD
 # After user completes payment
 verified = client.transactions.verify(reference='unique-reference-123')
 
@@ -125,12 +156,26 @@ if verified['data']['status'] == 'success':
     # Update your database
 else:
     print("Payment failed!")
+=======
+with PaystackClient() as client:
+    response = client.transactions.verify(reference='order-001')
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 ```
 
-### 4. Set Up Webhooks
+### 4. Verify Transaction
+
+```python
+response = client.transactions.verify(reference='order-001')
+
+if response['data']['status'] == 'success':
+    print("Payment successful!")
+```
+
+### 5. Set Up Webhooks
 
 ```python
 # urls.py
+<<<<<<< HEAD
 from django.urls import include, path
 
 urlpatterns = [
@@ -201,20 +246,39 @@ response = client.transactions.list(page=1, per_page=10)
 response = client.transactions.fetch(id_or_reference=123456)
 ```
 
+=======
+from django.urls import path
+from djpaystack.webhooks.views import handle_webhook
+
+urlpatterns = [
+    path('webhooks/paystack/', handle_webhook, name='paystack_webhook'),
+]
+```
+
+Configure the webhook URL in your [Paystack Dashboard](https://dashboard.paystack.com/settings/developer).
+
+## Usage Examples
+
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 ### Customers
 
 ```python
+client = PaystackClient()
+
 # Create customer
 response = client.customers.create(
     email='customer@example.com',
     first_name='John',
     last_name='Doe',
-    phone='1234567890'
+    phone='2348012345678',
 )
 
+<<<<<<< HEAD
 # List customers
 response = client.customers.list(page=1, per_page=50)
 
+=======
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 # Fetch customer
 response = client.customers.fetch(email_or_code='CUS_xxxxx')
 ```
@@ -222,6 +286,7 @@ response = client.customers.fetch(email_or_code='CUS_xxxxx')
 ### Subscriptions
 
 ```python
+<<<<<<< HEAD
 # Create subscription
 response = client.subscriptions.create(
     customer='CUS_xxxxx',
@@ -248,13 +313,30 @@ response = client.plans.create(
     amount=500000,  # 5000 NGN
     interval='monthly',
     description='Premium monthly subscription'
+=======
+# Create a plan
+response = client.plans.create(
+    name='Monthly Pro',
+    amount=500000,  # 5,000 NGN
+    interval='monthly',
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 )
+plan_code = response['data']['plan_code']
 
+<<<<<<< HEAD
 # List plans
 response = client.plans.list(page=1)
 
 # Fetch plan
 response = client.plans.fetch(id_or_code='PLN_xxxxx')
+=======
+# Subscribe a customer
+response = client.subscriptions.create(
+    customer='CUS_xxxxx',
+    plan=plan_code,
+    authorization='AUTH_xxxxx',
+)
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 ```
 
 ### Transfers
@@ -265,25 +347,47 @@ response = client.transfer_recipients.create(
     type='nuban',
     name='John Doe',
     account_number='0000000000',
-    bank_code='001'
+    bank_code='058',
 )
+recipient_code = response['data']['recipient_code']
 
 # Initiate transfer
 response = client.transfers.initiate(
     source='balance',
     amount=50000,
-    recipient='RCP_xxxxx',
-    reference='transfer-001'
+    recipient=recipient_code,
+    reason='Payout',
+)
+```
+
+### Charge (Card, Bank Transfer, USSD, QR, EFT)
+
+```python
+# Charge with bank transfer
+response = client.charge.create(
+    email='customer@example.com',
+    amount=50000,
+    bank_transfer={'account_expires_at': '2025-12-31T23:59:59'},
 )
 
+<<<<<<< HEAD
 # Finalize transfer
 response = client.transfers.finalize(transfer_code='TRF_xxxxx', otp='123456')
+=======
+# Charge with QR code (scan-to-pay)
+response = client.charge.create(
+    email='customer@example.com',
+    amount=50000,
+    qr={'provider': 'visa'},
+)
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 ```
 
 ### Refunds
 
 ```python
 # Create refund
+<<<<<<< HEAD
 response = client.refunds.create(
     transaction='123456'
 )
@@ -313,11 +417,97 @@ init = client.customers.initialize_authorization(
     email='customer@example.com', channel='direct_debit',
 )
 client.customers.verify_authorization(init['data']['reference'])
+=======
+response = client.refunds.create(transaction='123456')
+
+# Retry a stuck refund
+response = client.refunds.retry(id='123456')
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 ```
 
-## Database Models
+### Dedicated Virtual Accounts
 
-The package includes Django models for persistence:
+```python
+# Single-step assignment
+response = client.dedicated_accounts.assign(
+    email='customer@example.com',
+    first_name='John',
+    last_name='Doe',
+    phone='+2348012345678',
+    preferred_bank='wema-bank',
+)
+```
+
+### Dynamic Transaction Splits
+
+```python
+response = client.transactions.initialize(
+    email='customer@example.com',
+    amount=100000,
+    split={
+        'type': 'percentage',
+        'bearer_type': 'account',
+        'subaccounts': [
+            {'subaccount': 'ACCT_xxx', 'share': 30},
+            {'subaccount': 'ACCT_yyy', 'share': 20},
+        ],
+    },
+)
+```
+
+## Webhook Signals
+
+Listen for payment events using Django signals:
+
+```python
+from django.dispatch import receiver
+from djpaystack.signals import paystack_payment_successful, paystack_payment_failed
+
+@receiver(paystack_payment_successful)
+def on_payment_success(sender, transaction_data, **kwargs):
+    reference = transaction_data['reference']
+    # Fulfil the order
+
+@receiver(paystack_payment_failed)
+def on_payment_failed(sender, transaction_data, **kwargs):
+    reference = transaction_data['reference']
+    # Notify the customer
+```
+
+Available signals: `paystack_payment_successful`, `paystack_payment_failed`, `paystack_subscription_created`, `paystack_subscription_cancelled`, `paystack_transfer_successful`, `paystack_transfer_failed`, `paystack_refund_processed`, `paystack_dispute_created`, `paystack_dispute_resolved`.
+
+## Configuration Reference
+
+```python
+PAYSTACK = {
+    # Required
+    'SECRET_KEY': 'sk_...',
+    'PUBLIC_KEY': 'pk_...',
+
+    # Webhook
+    'WEBHOOK_SECRET': 'whsec_...',
+    'ALLOWED_WEBHOOK_IPS': [],  # Empty = Paystack default IPs
+
+    # API behaviour
+    'BASE_URL': 'https://api.paystack.co',
+    'TIMEOUT': 30,
+    'MAX_RETRIES': 3,
+    'VERIFY_SSL': True,
+    'CURRENCY': 'NGN',
+    'ENVIRONMENT': 'production',  # 'production' or 'test'
+
+    # Features
+    'AUTO_VERIFY_TRANSACTIONS': True,
+    'ENABLE_SIGNALS': True,
+    'ENABLE_MODELS': True,
+    'CACHE_TIMEOUT': 300,
+    'LOG_REQUESTS': False,
+    'LOG_RESPONSES': False,
+    'CALLBACK_URL': None,
+}
+```
+
+## Django Models
 
 ```python
 from djpaystack.models import (
@@ -328,6 +518,7 @@ from djpaystack.models import (
     PaystackTransfer,
     PaystackWebhookEvent,
 )
+<<<<<<< HEAD
 
 # Query transactions
 transactions = PaystackTransaction.objects.filter(status='success')
@@ -439,14 +630,14 @@ PAYSTACK = {
     'PUBLIC_KEY': os.environ['PAYSTACK_PUBLIC_KEY'],
     'ENVIRONMENT': os.environ.get('PAYSTACK_ENVIRONMENT', 'test'),
 }
+=======
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 ```
 
 > `python-decouple` is **not** a dependency of this package. If you prefer
 > `decouple.config(...)`, install it in your own project.
 
 ## Error Handling
-
-The package provides specific exception classes:
 
 ```python
 from djpaystack.exceptions import (
@@ -458,17 +649,22 @@ from djpaystack.exceptions import (
 )
 
 try:
+<<<<<<< HEAD
     client.transactions.verify(reference='ref-123')
+=======
+    response = client.transactions.verify(reference='ref-123')
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 except PaystackAuthenticationError:
-    print("Invalid API credentials")
+    print("Invalid API key")
 except PaystackNetworkError:
-    print("Network error occurred")
+    print("Network error — will be retried automatically")
 except PaystackAPIError as e:
     print(f"API error: {e}")
 ```
 
-## Pagination
+## Django Compatibility
 
+<<<<<<< HEAD
 `list()` returns a **single page** (the first by default) and preserves
 Paystack's `meta` block, so you control how much you fetch:
 
@@ -548,35 +744,40 @@ is_valid = verify_webhook_signature(
 if not is_valid:
     return JsonResponse({'status': 'invalid'}, status=403)
 ```
+=======
+| paystack-django | Django 3.2 | 4.0 | 4.1 | 4.2 | 5.0 | 5.2 | 6.0 |
+|-----------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 1.1.x | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+Python 3.8 – 3.14 supported.
+
+## Testing
+
+```bash
+pip install -e ".[dev]"
+pytest --cov=djpaystack
+```
+
+## Documentation
+
+Full documentation is available at [paystack-django.readthedocs.io](https://paystack-django.readthedocs.io/).
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-## Support
-
-- 📚 [Full Documentation](https://paystack-django.readthedocs.io/)
-- 🐛 [Report Issues](https://github.com/HummingByteDev/paystack-django/issues)
-- 💬 [Discussions](https://github.com/HummingByteDev/paystack-django/discussions)
-- 📧 [Email Support](mailto:dev@hummingbyte.org)
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
-## Acknowledgments
+## Links
 
-- [Paystack](https://paystack.com) for the excellent payment gateway
-- Django community for the amazing framework
-- All contributors and users of this package
-
-## Disclaimer
-
-This package is not affiliated with or endorsed by Paystack. It is maintained by Humming Byte as a community contribution.
+- [Full Documentation](https://paystack-django.readthedocs.io/)
+- [PyPI](https://pypi.org/project/paystack-django/)
+- [GitHub](https://github.com/HummingByteDev/paystack-django)
+- [Bug Tracker](https://github.com/HummingByteDev/paystack-django/issues)
+- [Changelog](CHANGELOG.md)
 
 ---
 

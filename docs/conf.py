@@ -16,8 +16,13 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'paystack-django'
 copyright = '2026, Humming Byte'
 author = 'Humming Byte'
+<<<<<<< HEAD
 release = '2.0.0'
 version = '2.0.0'
+=======
+release = '1.1.1'
+version = '1.1.1'
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
 
 # -- General configuration ----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/config.html#general-configuration
@@ -77,7 +82,7 @@ html_theme_options = {
 html_static_path = ['_static']
 html_logo = None
 html_title = 'paystack-django Documentation'
-html_baseurl = 'https://django-paystack.readthedocs.io/'
+html_baseurl = 'https://paystack-django.readthedocs.io/'
 
 # -- Options for intersphinx --------------------------------------------------
 intersphinx_mapping = {

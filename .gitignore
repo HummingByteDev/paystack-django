@@ -157,4 +157,8 @@ debug.log
 dev-files/
 .env.*
 .env
+<<<<<<< HEAD
 local-docs/
+=======
+git_init.sh
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f

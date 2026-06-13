@@ -66,6 +66,15 @@ class TestWebhookHandler(TestCase):
             # Should not raise exception (handlers return None by design)
             assert result is None
 
+    def test_missing_webhook_secret_rejects(self):
+        """Test that missing WEBHOOK_SECRET rejects requests"""
+        payload = b'{"event": "charge.success", "data": {}}'
+        with patch('djpaystack.webhooks.handlers.paystack_settings') as mock_settings:
+            mock_settings.WEBHOOK_SECRET = None
+
+            result = self.handler.verify_signature(payload, 'any_signature')
+            assert result is False
+
     def test_duplicate_event_detection(self):
         """Test duplicate event detection"""
         event_id = "test_event_123"
@@ -94,8 +103,9 @@ class TestWebhookView(TestCase):
             "/webhook/", data=json.dumps(payload), content_type="application/json"
         )
 
-        response = self.view(request)
-        assert response.status_code == 400
+        with patch.object(webhook_handler, 'verify_ip', return_value=True):
+            response = self.view(request)
+            assert response.status_code == 400
 
     def test_valid_webhook_request(self):
         """Test valid webhook request"""
@@ -126,7 +136,12 @@ class TestWebhookView(TestCase):
             HTTP_X_PAYSTACK_SIGNATURE=signature,
         )
 
+<<<<<<< HEAD
         with patch("djpaystack.webhooks.views.paystack_settings") as mock_settings:
+=======
+        with patch('djpaystack.webhooks.views.paystack_settings') as mock_settings, \
+                patch.object(webhook_handler, 'verify_ip', return_value=True):
+>>>>>>> 325e07c878dfd700edf7fb979eeb411197c9663f
             mock_settings.WEBHOOK_SECRET = secret
             mock_settings.ENABLE_MODELS = False
             mock_settings.ENABLE_SIGNALS = False
