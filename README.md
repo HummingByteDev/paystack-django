@@ -485,7 +485,6 @@ from decouple import config
 PAYSTACK = {
     'SECRET_KEY': config('PAYSTACK_SECRET_KEY'),
     'PUBLIC_KEY': config('PAYSTACK_PUBLIC_KEY'),
-    'WEBHOOK_SECRET': config('PAYSTACK_WEBHOOK_SECRET'),
 }
 ```
 
