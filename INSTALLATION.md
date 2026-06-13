@@ -3,7 +3,7 @@
 ## System Requirements
 
 - Python 3.8 or higher
-- Django 3.2 or higher
+- Django 4.2 or higher
 - pip or pip3
 
 ## Step 1: Install the Package

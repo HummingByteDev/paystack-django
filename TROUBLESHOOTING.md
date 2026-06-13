@@ -174,7 +174,7 @@ SECRET_KEY = 'sk_live_xxxx'  # Production key
 **Check the response:**
 
 ```python
-response = client.transaction.initialize(
+response = client.transactions.initialize(
     email='test@example.com',
     amount=50000,
     reference='test-123'
@@ -195,14 +195,14 @@ reference = 'test-123'
 
 # 2. Try to fetch transaction details
 try:
-    response = client.transaction.verify(reference=reference)
+    response = client.transactions.verify(reference=reference)
     print(f"Status: {response['status']}")
     print(f"Data: {response.get('data')}")
 except Exception as e:
     print(f"Error: {e}")
 
 # 3. List transactions to find the right one
-list_response = client.transaction.list(page=1)
+list_response = client.transactions.list(page=1)
 print(list_response['data'])
 ```
 
@@ -214,7 +214,7 @@ print(list_response['data'])
 import uuid
 
 reference = f"order-{uuid.uuid4().hex[:12]}"
-response = client.transaction.initialize(
+response = client.transactions.initialize(
     email='test@example.com',
     amount=50000,
     reference=reference
@@ -425,12 +425,12 @@ def get_customer(customer_code):
     if cached:
         return cached
 
-    customer = client.customer.fetch(customer_code)
+    customer = client.customers.fetch(customer_code)
     cache.set(f'customer_{customer_code}', customer, 300)  # 5 minutes
     return customer
 
 # 2. Batch operations
-transactions = client.transaction.list(per_page=100)
+transactions = client.transactions.list(per_page=100)
 ```
 
 ---
@@ -474,7 +474,7 @@ PAYSTACK = {
 #### "Check API response"
 
 ```python
-response = client.transaction.initialize(
+response = client.transactions.initialize(
     email='test@example.com',
     amount=50000,
     reference='test-123'

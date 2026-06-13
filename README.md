@@ -3,19 +3,25 @@
 A comprehensive Django integration for the **Paystack Payment Gateway**. This package provides a complete, production-ready solution for integrating Paystack payments into your Django applications.
 
 [![PyPI version](https://badge.fury.io/py/paystack-django.svg)](https://badge.fury.io/py/paystack-django)
-[![Django Versions](https://img.shields.io/badge/Django-3.2%2B-green)](https://www.djangoproject.com)
+[![Django Versions](https://img.shields.io/badge/Django-4.2%2B-green)](https://www.djangoproject.com)
 [![Python Versions](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **New in 2.0** — full coverage of the Paystack API (including Virtual Terminal,
+> Direct Debit, Orders and Storefronts), memory-safe pagination with lazy
+> `iter_all()` iterators, race-safe webhook deduplication, and a fail-closed
+> webhook verification model. See the [CHANGELOG](CHANGELOG.md) for the full
+> list, including **breaking changes**.
+
 ## Features
 
-- **Broad Paystack API Coverage** - Most Paystack endpoints across 25+ categories
-- **Django Models** - Pre-built models for transactions, customers, plans, and more
-- **Webhook Support** - Built-in webhook handling and HMAC-SHA512 signature verification (fails closed)
-- **Signal Support** - Django signals for payment events
+- **Full Paystack API Coverage** - Django-native clients for every Paystack API category
+- **Django Models** - Pre-built models for transactions, customers, plans, subscriptions, transfers, and webhook events
+- **Webhook Support** - Built-in webhook handling, HMAC-SHA512 signature verification (fails closed), and race-safe deduplication
+- **Signal Support** - Django signals for payment, transfer, refund, subscription, and dispute events
+- **Memory-safe Pagination** - Single-page `list()` plus lazy `iter_all()` iterators
 - **Type Hints** - Typed public interface with a shipped `py.typed` marker
 - **Comprehensive Documentation** - Detailed docs and examples
-- **Production Ready** - Used in production by multiple companies
 
 ## Supported Services
 
@@ -82,12 +88,13 @@ INSTALLED_APPS = [
 PAYSTACK = {
     'SECRET_KEY': 'sk_live_your_secret_key_here',
     'PUBLIC_KEY': 'pk_live_your_public_key_here',
-    # Paystack signs webhooks with your API SECRET KEY (the same sk_... value).
-    # Set this to that key; if left unset, webhooks are REJECTED (fail closed).
-    'WEBHOOK_SECRET': 'sk_live_your_secret_key_here',
     'ENVIRONMENT': 'production',  # or 'test'
 }
 ```
+
+> Paystack signs webhooks with your account **secret key**, so `WEBHOOK_SECRET`
+> is optional and defaults to `SECRET_KEY`. Webhooks are **rejected** if no
+> signing key can be resolved (fail closed).
 
 ### 2. Create PaystackClient Instance
 
@@ -97,7 +104,7 @@ from djpaystack import PaystackClient
 client = PaystackClient()
 
 # Initialize a transaction
-response = client.transaction.initialize(
+response = client.transactions.initialize(
     email='customer@example.com',
     amount=50000,  # in kobo (500 NGN)
     reference='unique-reference-123'
@@ -111,7 +118,7 @@ print(f"Redirect user to: {authorization_url}")
 
 ```python
 # After user completes payment
-verified = client.transaction.verify(reference='unique-reference-123')
+verified = client.transactions.verify(reference='unique-reference-123')
 
 if verified['data']['status'] == 'success':
     print("Payment successful!")
@@ -124,15 +131,16 @@ else:
 
 ```python
 # urls.py
-from django.urls import path
-from djpaystack.webhooks import views as webhook_views
+from django.urls import include, path
 
 urlpatterns = [
-    path('webhooks/paystack/', webhook_views.handle_webhook, name='paystack_webhook'),
+    # Exposes the webhook endpoint at /paystack/webhook/
+    path('paystack/', include('djpaystack.webhooks.urls')),
 ]
 ```
 
-Then configure the webhook URL in your Paystack dashboard.
+Then set the webhook URL (e.g. `https://yoursite.com/paystack/webhook/`) in your
+Paystack dashboard.
 
 ## Configuration
 
@@ -176,7 +184,7 @@ from djpaystack import PaystackClient
 client = PaystackClient()
 
 # Initialize transaction
-response = client.transaction.initialize(
+response = client.transactions.initialize(
     email='user@example.com',
     amount=100000,
     reference='unique-ref-001',
@@ -184,20 +192,20 @@ response = client.transaction.initialize(
 )
 
 # Verify transaction
-response = client.transaction.verify(reference='unique-ref-001')
+response = client.transactions.verify(reference='unique-ref-001')
 
-# List transactions
-response = client.transaction.list(page=1, per_page=10)
+# List transactions (one page; use iter_all() to stream everything)
+response = client.transactions.list(page=1, per_page=10)
 
 # Fetch transaction
-response = client.transaction.fetch(id=123456)
+response = client.transactions.fetch(id_or_reference=123456)
 ```
 
 ### Customers
 
 ```python
 # Create customer
-response = client.customer.create(
+response = client.customers.create(
     email='customer@example.com',
     first_name='John',
     last_name='Doe',
@@ -205,56 +213,55 @@ response = client.customer.create(
 )
 
 # List customers
-response = client.customer.list(page=1, per_page=50)
+response = client.customers.list(page=1, per_page=50)
 
 # Fetch customer
-response = client.customer.fetch(customer_code='CUS_xxxxx')
+response = client.customers.fetch(email_or_code='CUS_xxxxx')
 ```
 
 ### Subscriptions
 
 ```python
 # Create subscription
-response = client.subscription.create(
-    customer_code='CUS_xxxxx',
-    plan_code='PLN_xxxxx',
-    authorization_code='AUTH_xxxxx'
+response = client.subscriptions.create(
+    customer='CUS_xxxxx',
+    plan='PLN_xxxxx',
+    authorization='AUTH_xxxxx'
 )
 
 # Enable subscription
-response = client.subscription.enable(
+response = client.subscriptions.enable(
     code='SUB_xxxxx',
     token='tok_xxxxx'
 )
 
 # Disable subscription
-response = client.subscription.disable(code='SUB_xxxxx')
+response = client.subscriptions.disable(code='SUB_xxxxx')
 ```
 
 ### Plans
 
 ```python
 # Create plan
-response = client.plan.create(
+response = client.plans.create(
     name='Monthly Plan',
-    description='Premium monthly subscription',
     amount=500000,  # 5000 NGN
     interval='monthly',
-    plan_code='PLN_custom'
+    description='Premium monthly subscription'
 )
 
 # List plans
-response = client.plan.list(page=1)
+response = client.plans.list(page=1)
 
 # Fetch plan
-response = client.plan.fetch(plan_id=123)
+response = client.plans.fetch(id_or_code='PLN_xxxxx')
 ```
 
 ### Transfers
 
 ```python
 # Create transfer recipient
-response = client.transfer_recipient.create(
+response = client.transfer_recipients.create(
     type='nuban',
     name='John Doe',
     account_number='0000000000',
@@ -262,7 +269,7 @@ response = client.transfer_recipient.create(
 )
 
 # Initiate transfer
-response = client.transfer.initiate(
+response = client.transfers.initiate(
     source='balance',
     amount=50000,
     recipient='RCP_xxxxx',
@@ -270,22 +277,42 @@ response = client.transfer.initiate(
 )
 
 # Finalize transfer
-response = client.transfer.finalize(transfer_code='TRF_xxxxx', otp='123456')
+response = client.transfers.finalize(transfer_code='TRF_xxxxx', otp='123456')
 ```
 
 ### Refunds
 
 ```python
 # Create refund
-response = client.refund.create(
+response = client.refunds.create(
     transaction='123456'
 )
 
 # List refunds
-response = client.refund.list(page=1)
+response = client.refunds.list(page=1)
 
 # Fetch refund
-response = client.refund.fetch(refund_id='123')
+response = client.refunds.fetch(reference='123456')
+```
+
+### Orders, Storefronts & Virtual Terminal (new in 2.0)
+
+```python
+# Create a virtual terminal
+client.virtual_terminal.create(
+    name='In-store till',
+    destinations=[{'target': '+2348000000000', 'name': 'Sales'}],
+)
+
+# Create a storefront and publish it
+sf = client.storefront.create(name='My Shop', slug='my-shop', currency='NGN')
+client.storefront.publish(sf['data']['id'])
+
+# Customer direct-debit onboarding
+init = client.customers.initialize_authorization(
+    email='customer@example.com', channel='direct_debit',
+)
+client.customers.verify_authorization(init['data']['reference'])
 ```
 
 ## Database Models
@@ -297,8 +324,9 @@ from djpaystack.models import (
     PaystackTransaction,
     PaystackCustomer,
     PaystackPlan,
-    PaystackProduct,
-    PaystackRefund,
+    PaystackSubscription,
+    PaystackTransfer,
+    PaystackWebhookEvent,
 )
 
 # Query transactions
@@ -309,35 +337,47 @@ customer_transactions = PaystackTransaction.objects.filter(
     customer_email='user@example.com'
 )
 
-# Create a payment request
-from djpaystack.models import PaymentRequest
-request = PaymentRequest.objects.create(
-    reference='req-001',
-    amount=100000,
-    description='Course enrollment'
-)
+# Inspect stored webhook events
+events = PaystackWebhookEvent.objects.filter(event_type='charge.success')
 ```
+
+> Persistence is controlled by the `ENABLE_MODELS` setting (default `True`).
+> Webhook handlers populate these models automatically.
 
 ## Webhooks
 
 Handle Paystack webhooks automatically:
 
 ```python
-# Webhook signals are automatically sent
-from djpaystack.signals import transaction_verified, transaction_failed
-
+# Webhook signals are dispatched automatically as events arrive
 from django.dispatch import receiver
 
-@receiver(transaction_verified)
-def on_payment_success(sender, transaction, **kwargs):
-    print(f"Payment successful: {transaction.reference}")
+from djpaystack.signals import (
+    paystack_payment_successful,
+    paystack_payment_failed,
+    paystack_transfer_successful,
+    paystack_refund_processed,
+    paystack_dispute_created,
+)
+
+@receiver(paystack_payment_successful)
+def on_payment_success(sender, transaction_data, **kwargs):
+    print(f"Payment successful: {transaction_data['reference']}")
     # Update your application
 
-@receiver(transaction_failed)
-def on_payment_failed(sender, transaction, **kwargs):
-    print(f"Payment failed: {transaction.reference}")
+@receiver(paystack_payment_failed)
+def on_payment_failed(sender, transaction_data, **kwargs):
+    print(f"Payment failed: {transaction_data['reference']}")
     # Handle failed payment
 ```
+
+Available signals: `paystack_payment_successful`, `paystack_payment_failed`,
+`paystack_subscription_created`, `paystack_subscription_cancelled`,
+`paystack_transfer_successful`, `paystack_transfer_failed`,
+`paystack_refund_processed`, `paystack_dispute_created`,
+`paystack_dispute_resolved`. Each receiver is called with a keyword argument
+carrying the event payload (e.g. `transaction_data`, `transfer_data`,
+`refund_data`, `dispute_data`).
 
 ## Testing
 
@@ -362,9 +402,11 @@ tox
 
 ## Django Compatibility
 
-| Package Version | Django 3.2 | Django 4.0 | Django 4.1 | Django 4.2 | Django 5.0 | Django 5.2 | Django 6.0 |
-| --------------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- |
-| 1.0.x           | ✅         | ✅         | ✅         | ✅         | ✅         | ✅         | ✅         |
+The 2.x line is tested against the current and LTS Django releases:
+
+| Package Version | Django 4.2 (LTS) | Django 5.2 (LTS) | Django 6.0 |
+| --------------- | ---------------- | ---------------- | ---------- |
+| 2.0.x           | ✅               | ✅               | ✅         |
 
 ## Python Compatibility
 
@@ -374,7 +416,6 @@ tox
 - Python 3.11
 - Python 3.12
 - Python 3.13
-- Python 3.14
 
 ## Environment Variables
 
@@ -388,18 +429,20 @@ PAYSTACK_WEBHOOK_SECRET=sk_live_xxx
 PAYSTACK_ENVIRONMENT=production
 ```
 
-Then use `python-decouple` to load them:
+Load them however you prefer — for example with the standard library:
 
 ```python
-from decouple import config
+import os
 
 PAYSTACK = {
-    'SECRET_KEY': config('PAYSTACK_SECRET_KEY'),
-    'PUBLIC_KEY': config('PAYSTACK_PUBLIC_KEY'),
-    'WEBHOOK_SECRET': config('PAYSTACK_WEBHOOK_SECRET'),
-    'ENVIRONMENT': config('PAYSTACK_ENVIRONMENT', default='test'),
+    'SECRET_KEY': os.environ['PAYSTACK_SECRET_KEY'],
+    'PUBLIC_KEY': os.environ['PAYSTACK_PUBLIC_KEY'],
+    'ENVIRONMENT': os.environ.get('PAYSTACK_ENVIRONMENT', 'test'),
 }
 ```
+
+> `python-decouple` is **not** a dependency of this package. If you prefer
+> `decouple.config(...)`, install it in your own project.
 
 ## Error Handling
 
@@ -415,7 +458,7 @@ from djpaystack.exceptions import (
 )
 
 try:
-    client.transaction.verify(reference='ref-123')
+    client.transactions.verify(reference='ref-123')
 except PaystackAuthenticationError:
     print("Invalid API credentials")
 except PaystackNetworkError:
@@ -450,7 +493,7 @@ for txn in client.transactions.iter_all(status='success', from_date='2024-01-01'
     process(txn)   # one record at a time; pages fetched on demand
 ```
 
-> **Upgrading from 1.0.x?** Previously `list()` eagerly fetched *all* pages.
+> **Upgrading from 1.x?** Previously `list()` eagerly fetched *all* pages.
 > It now returns one page — switch full scans to `iter_all()`. See the
 > [CHANGELOG](CHANGELOG.md) for the full list of breaking changes.
 
@@ -476,29 +519,30 @@ logger = logging.getLogger('djpaystack')
 
 ### Environment Variables
 
-Never hardcode secrets:
+Never hardcode secrets — load them from the environment:
 
 ```python
 import os
-from decouple import config
 
 PAYSTACK = {
-    'SECRET_KEY': config('PAYSTACK_SECRET_KEY'),
-    'PUBLIC_KEY': config('PAYSTACK_PUBLIC_KEY'),
+    'SECRET_KEY': os.environ['PAYSTACK_SECRET_KEY'],
+    'PUBLIC_KEY': os.environ['PAYSTACK_PUBLIC_KEY'],
 }
 ```
 
 ### Webhook Verification
 
-Verify all incoming webhooks:
+The built-in `PaystackWebhookView` verifies the HMAC-SHA512 signature on every
+request and **rejects** anything it cannot verify (fail closed), so you normally
+don't need to verify manually. If you handle webhooks yourself, use the helper:
 
 ```python
-from djpaystack.webhooks.handlers import verify_webhook_signature
+from djpaystack.utils import verify_webhook_signature
 
 is_valid = verify_webhook_signature(
-    body=request.body,
-    signature_header=request.META.get('HTTP_X_PAYSTACK_SIGNATURE'),
-    webhook_secret=PAYSTACK['WEBHOOK_SECRET']
+    request.body,                                      # payload (bytes)
+    request.headers.get('X-Paystack-Signature', ''),   # signature
+    settings.PAYSTACK['SECRET_KEY'],                   # secret (the signing key)
 )
 
 if not is_valid:

@@ -16,8 +16,8 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'paystack-django'
 copyright = '2026, Humming Byte'
 author = 'Humming Byte'
-release = '1.2.0'
-version = '1.2.0'
+release = '2.0.0'
+version = '2.0.0'
 
 # -- General configuration ----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/config.html#general-configuration

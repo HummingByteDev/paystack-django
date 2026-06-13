@@ -50,17 +50,21 @@ PAYSTACK = {
 
 ### 2. Webhook Validation
 
-**Always verify webhook signatures:**
+**Webhook signatures are verified automatically.** The built-in
+`PaystackWebhookView` checks the HMAC-SHA512 signature on every request and
+**rejects** anything it cannot verify (fail closed). Paystack signs webhooks with
+your account secret key, so `WEBHOOK_SECRET` defaults to `SECRET_KEY`.
+
+If you handle webhooks yourself, use the helper:
 
 ```python
-from djpaystack.webhooks.handlers import verify_webhook_signature
+from djpaystack.utils import verify_webhook_signature
 
 def handle_webhook(request):
-    # Verify signature before processing
     is_valid = verify_webhook_signature(
-        body=request.body,
-        signature_header=request.META.get('HTTP_X_PAYSTACK_SIGNATURE'),
-        webhook_secret=settings.PAYSTACK['WEBHOOK_SECRET']
+        request.body,                                      # payload (bytes)
+        request.headers.get('X-Paystack-Signature', ''),   # signature
+        settings.PAYSTACK['SECRET_KEY'],                   # signing secret
     )
 
     if not is_valid:
@@ -313,5 +317,5 @@ We appreciate security researchers who responsibly disclose vulnerabilities.
 
 ---
 
-**Last Updated:** February 2024
-**Version:** 1.0.0
+**Last Updated:** June 2026
+**Version:** 2.0.0

@@ -11,7 +11,7 @@ from .exceptions import (
     PaystackValidationError,
 )
 
-__version__ = "1.2.0"
+__version__ = "2.0.0"
 __author__ = "Humming Byte"
 __email__ = "dev@hummingbyte.org"
 __license__ = "MIT"

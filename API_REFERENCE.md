@@ -1,5 +1,12 @@
 # paystack-django API Documentation
 
+> This is a quick reference for common calls. For the complete, always-current
+> API — including the Orders, Storefront, Virtual Terminal and Direct Debit
+> clients added in 2.0 — see the [README](README.md) and the
+> [full documentation](https://paystack-django.readthedocs.io/). Resource
+> clients are accessed as plural attributes on the client (e.g.
+> `client.transactions`, `client.customers`, `client.transfers`).
+
 ## Quick Reference
 
 ### Base Client
@@ -15,7 +22,7 @@ client = PaystackClient()
 ### Initialize Transaction
 
 ```python
-response = client.transaction.initialize(
+response = client.transactions.initialize(
     email='customer@example.com',
     amount=50000,  # in kobo
     reference='unique-reference',
@@ -32,15 +39,15 @@ response = client.transaction.initialize(
 ### Verify Transaction
 
 ```python
-response = client.transaction.verify(reference='unique-reference')
+response = client.transactions.verify(reference='unique-reference')
 # or
-response = client.transaction.verify(id=123456)
+response = client.transactions.verify(reference='unique-reference')
 ```
 
 ### List Transactions
 
 ```python
-response = client.transaction.list(
+response = client.transactions.list(
     page=1,
     per_page=50,
     customer=None,
@@ -53,13 +60,13 @@ response = client.transaction.list(
 ### Fetch Single Transaction
 
 ```python
-response = client.transaction.fetch(id=123456)
+response = client.transactions.fetch(id_or_reference=123456)
 ```
 
 ### Timeline
 
 ```python
-response = client.transaction.timeline(
+response = client.transactions.timeline(
     reference='unique-reference',
     id_type='reference'  # or 'id'
 )
@@ -68,13 +75,13 @@ response = client.transaction.timeline(
 ### Totals
 
 ```python
-response = client.transaction.totals()
+response = client.transactions.totals()
 ```
 
 ### Export
 
 ```python
-response = client.transaction.export(
+response = client.transactions.export(
     filename=None,
     path=None
 )
@@ -87,7 +94,7 @@ response = client.transaction.export(
 ### Create Customer
 
 ```python
-response = client.customer.create(
+response = client.customers.create(
     email='customer@example.com',
     first_name=None,
     last_name=None,
@@ -98,7 +105,7 @@ response = client.customer.create(
 ### List Customers
 
 ```python
-response = client.customer.list(
+response = client.customers.list(
     page=1,
     per_page=50
 )
@@ -107,15 +114,15 @@ response = client.customer.list(
 ### Fetch Customer
 
 ```python
-response = client.customer.fetch(customer_code='CUS_xxxxx')
+response = client.customers.fetch(email_or_code='CUS_xxxxx')
 # or
-response = client.customer.fetch(id=123)
+response = client.customers.fetch(email_or_code='CUS_xxxxx')
 ```
 
 ### Update Customer
 
 ```python
-response = client.customer.update(
+response = client.customers.update(
     code='CUS_xxxxx',
     first_name=None,
     last_name=None,
@@ -127,9 +134,9 @@ response = client.customer.update(
 ### Whitelist/Blacklist
 
 ```python
-response = client.customer.whitelist(
-    action='whitelist',  # or 'blacklist'
-    customer_code='CUS_xxxxx'
+response = client.customers.set_risk_action(
+    customer='CUS_xxxxx',
+    risk_action='allow'  # 'default', 'allow' (whitelist), or 'deny' (blacklist)
 )
 ```
 
@@ -140,7 +147,7 @@ response = client.customer.whitelist(
 ### Create Plan
 
 ```python
-response = client.plan.create(
+response = client.plans.create(
     name='Monthly Subscription',
     description=None,
     amount=500000,  # in kobo
@@ -156,7 +163,7 @@ response = client.plan.create(
 ### List Plans
 
 ```python
-response = client.plan.list(
+response = client.plans.list(
     page=1,
     per_page=50,
     interval=None,
@@ -167,14 +174,14 @@ response = client.plan.list(
 ### Fetch Plan
 
 ```python
-response = client.plan.fetch(plan_id=123)
+response = client.plans.fetch(id_or_code='PLN_xxxxx')
 ```
 
 ### Update Plan
 
 ```python
-response = client.plan.update(
-    id=123,
+response = client.plans.update(
+    id_or_code=123,
     name=None,
     description=None,
     amount=None,
@@ -193,10 +200,10 @@ response = client.plan.update(
 ### Create Subscription
 
 ```python
-response = client.subscription.create(
-    customer_code='CUS_xxxxx',
-    plan_code='PLN_xxxxx',
-    authorization_code='AUTH_xxxxx',
+response = client.subscriptions.create(
+    customer='CUS_xxxxx',
+    plan='PLN_xxxxx',
+    authorization='AUTH_xxxxx',
     start_date=None
 )
 ```
@@ -204,7 +211,7 @@ response = client.subscription.create(
 ### List Subscriptions
 
 ```python
-response = client.subscription.list(
+response = client.subscriptions.list(
     page=1,
     per_page=50,
     customer=None,
@@ -215,13 +222,13 @@ response = client.subscription.list(
 ### Fetch Subscription
 
 ```python
-response = client.subscription.fetch(code='SUB_xxxxx')
+response = client.subscriptions.fetch(code='SUB_xxxxx')
 ```
 
 ### Enable Subscription
 
 ```python
-response = client.subscription.enable(
+response = client.subscriptions.enable(
     code='SUB_xxxxx',
     token='tok_xxxxx'
 )
@@ -230,7 +237,7 @@ response = client.subscription.enable(
 ### Disable Subscription
 
 ```python
-response = client.subscription.disable(code='SUB_xxxxx')
+response = client.subscriptions.disable(code='SUB_xxxxx')
 ```
 
 ---
@@ -240,7 +247,7 @@ response = client.subscription.disable(code='SUB_xxxxx')
 ### Create Recipient
 
 ```python
-response = client.transfer_recipient.create(
+response = client.transfer_recipients.create(
     type='nuban',  # or 'mobile_money', 'ghipss'
     name='John Doe',
     account_number='0000000000',
@@ -253,7 +260,7 @@ response = client.transfer_recipient.create(
 ### List Recipients
 
 ```python
-response = client.transfer_recipient.list(
+response = client.transfer_recipients.list(
     page=1,
     per_page=50,
     type=None
@@ -263,13 +270,13 @@ response = client.transfer_recipient.list(
 ### Fetch Recipient
 
 ```python
-response = client.transfer_recipient.fetch(recipient_code='RCP_xxxxx')
+response = client.transfer_recipients.fetch(recipient_code='RCP_xxxxx')
 ```
 
 ### Update Recipient
 
 ```python
-response = client.transfer_recipient.update(
+response = client.transfer_recipients.update(
     recipient_code='RCP_xxxxx',
     name=None,
     email=None,
@@ -280,7 +287,7 @@ response = client.transfer_recipient.update(
 ### Delete Recipient
 
 ```python
-response = client.transfer_recipient.delete(recipient_code='RCP_xxxxx')
+response = client.transfer_recipients.delete(recipient_code='RCP_xxxxx')
 ```
 
 ---
@@ -290,7 +297,7 @@ response = client.transfer_recipient.delete(recipient_code='RCP_xxxxx')
 ### Initiate Transfer
 
 ```python
-response = client.transfer.initiate(
+response = client.transfers.initiate(
     source='balance',
     amount=50000,
     recipient='RCP_xxxxx',
@@ -303,7 +310,7 @@ response = client.transfer.initiate(
 ### Finalize Transfer
 
 ```python
-response = client.transfer.finalize(
+response = client.transfers.finalize(
     transfer_code='TRF_xxxxx',
     otp='123456'
 )
@@ -312,7 +319,7 @@ response = client.transfer.finalize(
 ### List Transfers
 
 ```python
-response = client.transfer.list(
+response = client.transfers.list(
     page=1,
     per_page=50,
     customer=None,
@@ -323,13 +330,13 @@ response = client.transfer.list(
 ### Fetch Transfer
 
 ```python
-response = client.transfer.fetch(transfer_code='TRF_xxxxx')
+response = client.transfers.fetch(transfer_code='TRF_xxxxx')
 ```
 
 ### Verify Transfer
 
 ```python
-response = client.transfer.verify(reference='transfer-ref-001')
+response = client.transfers.verify(reference='transfer-ref-001')
 ```
 
 ---
@@ -339,7 +346,7 @@ response = client.transfer.verify(reference='transfer-ref-001')
 ### Create Refund
 
 ```python
-response = client.refund.create(
+response = client.refunds.create(
     transaction=123456,
     amount=None,
     currency=None,
@@ -351,7 +358,7 @@ response = client.refund.create(
 ### List Refunds
 
 ```python
-response = client.refund.list(
+response = client.refunds.list(
     page=1,
     per_page=50,
     reference=None,
@@ -362,7 +369,7 @@ response = client.refund.list(
 ### Fetch Refund
 
 ```python
-response = client.refund.fetch(refund_id=123)
+response = client.refunds.fetch(reference='123456')
 ```
 
 ---
@@ -421,7 +428,7 @@ from djpaystack.exceptions import (
 )
 
 try:
-    response = client.transaction.verify(reference='ref-123')
+    response = client.transactions.verify(reference='ref-123')
 except PaystackAuthenticationError:
     print('Invalid credentials')
 except PaystackNetworkError:
@@ -477,7 +484,7 @@ from djpaystack import PaystackClient
 client = PaystackClient()
 
 # 1. Initialize transaction
-init_response = client.transaction.initialize(
+init_response = client.transactions.initialize(
     email='customer@example.com',
     amount=100000,  # 1000 NGN
     reference='order-12345'
@@ -488,7 +495,7 @@ if init_response['status']:
     print(f"Redirect user to: {auth_url}")
 
 # 2. After payment, verify transaction
-verify_response = client.transaction.verify(reference='order-12345')
+verify_response = client.transactions.verify(reference='order-12345')
 
 if verify_response['status'] and verify_response['data']['status'] == 'success':
     print("Payment successful!")
@@ -502,13 +509,13 @@ else:
 
 ```python
 # 1. Create customer
-customer = client.customer.create(
+customer = client.customers.create(
     email='recurring@example.com',
     first_name='John'
 )
 
 # 2. Create plan
-plan = client.plan.create(
+plan = client.plans.create(
     name='Monthly Subscription',
     amount=10000,  # 100 NGN
     interval='monthly',
@@ -516,7 +523,7 @@ plan = client.plan.create(
 )
 
 # 3. Initialize transaction to get authorization
-init = client.transaction.initialize(
+init = client.transactions.initialize(
     email='recurring@example.com',
     amount=10000,
     reference='initial-transaction'
@@ -525,11 +532,11 @@ init = client.transaction.initialize(
 # User completes payment and returns
 
 # 4. Get authorization
-transaction = client.transaction.verify(reference='initial-transaction')
+transaction = client.transactions.verify(reference='initial-transaction')
 authorization = transaction['data']['authorization']
 
 # 5. Create subscription
-subscription = client.subscription.create(
+subscription = client.subscriptions.create(
     customer_code=customer['data']['customer_code'],
     plan_code='PLAN_MONTHLY',
     authorization_code=authorization['authorization_code']
