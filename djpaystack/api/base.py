@@ -1,7 +1,11 @@
 """
 Base API class for all Paystack API endpoints
 """
-from typing import Dict, Any, Optional, List, Union
+
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
+
+if TYPE_CHECKING:
+    from ..client import PaystackClient
 
 
 class BaseAPI:
@@ -9,7 +13,12 @@ class BaseAPI:
     Base class for all Paystack API endpoints
     """
 
-    def __init__(self, client):
+    #: map Python-friendly keyword names to Paystack wire parameter
+    #: names. ``from``/``to`` are Python keywords, so callers use
+    #: ``from_date``/``to_date`` which must be renamed before transmission.
+    _PARAM_NAME_MAP: Dict[str, str] = {"from_date": "from", "to_date": "to"}
+
+    def __init__(self, client: "PaystackClient") -> None:
         """
         Initialize API endpoint
 
@@ -43,55 +52,69 @@ class BaseAPI:
         endpoint: str,
         params: Optional[Dict[str, Any]] = None,
         per_page: int = 50,
-        page: Optional[int] = None
+        page: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """
-        Helper method for paginated requests
+        """Fetch a **single** page of a list endpoint.
+
+        this returns one page (the first when ``page`` is omitted) and
+        preserves Paystack's ``meta`` block so callers can paginate. It does NOT
+        eagerly download the entire dataset (which could exhaust memory on large
+        accounts). To stream every record lazily, use :meth:`_iterate` (exposed
+        on resources as ``iterate``/``iter_all``).
 
         Args:
-            endpoint: API endpoint
-            params: Query parameters
-            per_page: Number of items per page
-            page: Specific page number (None for all pages)
+            endpoint: API endpoint.
+            params: Query parameters.
+            per_page: Number of items per page.
+            page: Page number (defaults to 1).
 
         Returns:
-            Response data with results
+            The raw Paystack response for the requested page (including ``meta``).
         """
-        params = params or {}
-        params['perPage'] = per_page
+        params = dict(params or {})
+        params["perPage"] = per_page
+        params["page"] = page if page is not None else 1
+        return self._get(endpoint, params=params)
 
-        if page is not None:
-            params['page'] = page
-            return self._get(endpoint, params=params)
+    def _iterate(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        per_page: int = 50,
+    ) -> Iterator[Dict[str, Any]]:
+        """Lazily yield every record across all pages of a list endpoint.
 
-        # Fetch all pages if page is None
-        all_results = []
-        current_page = 1
-
+        Pages are fetched on demand, so memory usage stays bounded regardless of
+        how many records exist.
+        """
+        params = dict(params or {})
+        params["perPage"] = per_page
+        page = 1
         while True:
-            params['page'] = current_page
+            params["page"] = page
             response = self._get(endpoint, params=params)
+            data = response.get("data", [])
+            if not isinstance(data, list):
+                return
+            for item in data:
+                yield item
 
-            data = response.get('data', [])
-            if isinstance(data, list):
-                all_results.extend(data)
-            else:
-                # Handle single object response
-                return response
+            meta = response.get("meta") or {}
+            page_count = meta.get("pageCount")
+            if page_count is not None:
+                if page >= page_count:
+                    return
+            elif len(data) < per_page:
+                # No meta available: a short page means we're done.
+                return
+            page += 1
 
-            meta = response.get('meta', {})
-            if not meta or current_page >= meta.get('pageCount', 1):
-                break
-
-            current_page += 1
-
-        # Return combined results
-        return {
-            'status': True,
-            'message': 'Success',
-            'data': all_results
-        }
-
-    def _build_query_params(self, **kwargs) -> Dict[str, Any]:
-        """Build query parameters, filtering out None values"""
-        return {k: v for k, v in kwargs.items() if v is not None}
+    def _build_query_params(self, **kwargs: Any) -> Dict[str, Any]:
+        """Build query parameters, filtering out None values and mapping
+        Python-friendly names to Paystack wire names."""
+        params: Dict[str, Any] = {}
+        for key, value in kwargs.items():
+            if value is None:
+                continue
+            params[self._PARAM_NAME_MAP.get(key, key)] = value
+        return params

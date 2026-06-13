@@ -1,8 +1,9 @@
 from django.urls import path
+
 from .views import PaystackWebhookView
 
-app_name = 'djpaystack'
+app_name = "djpaystack"
 
 urlpatterns = [
-    path('webhook/', PaystackWebhookView.as_view(), name='webhook'),
+    path("webhook/", PaystackWebhookView.as_view(), name="webhook"),
 ]

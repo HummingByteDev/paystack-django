@@ -50,30 +50,57 @@ Create a ``.env`` file:
 Advanced Configuration
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Additional optional settings:
+All supported optional settings (shown with their defaults):
 
 .. code-block:: python
 
     PAYSTACK = {
-        'SECRET_KEY': 'sk_test_your_secret_key',
+        'SECRET_KEY': 'sk_test_your_secret_key',   # required
         'PUBLIC_KEY': 'pk_test_your_public_key',
-        
-        # Webhook configuration
-        'WEBHOOK_SECRET': 'your-webhook-secret',
-        'WEBHOOK_TIMEOUT': 60,  # seconds
-        
-        # API configuration
-        'API_TIMEOUT': 30,  # seconds
-        'API_RETRIES': 3,
-        
-        # Logging
-        'LOG_REQUESTS': True,
-        'LOG_FILE': 'paystack.log',
-        
-        # Business details
-        'BUSINESS_NAME': 'Your Business Name',
-        'BUSINESS_EMAIL': 'business@example.com',
+
+        # HTTP client
+        'BASE_URL': 'https://api.paystack.co',
+        'TIMEOUT': 30,            # request timeout (seconds)
+        'MAX_RETRIES': 3,         # retries for idempotent (GET) requests only
+        'VERIFY_SSL': True,
+
+        # Webhooks
+        'WEBHOOK_SECRET': None,            # defaults to SECRET_KEY (see below)
+        'WEBHOOK_SIGNATURE_REQUIRED': True,  # reject unsigned webhooks (fail closed)
+        'ALLOWED_WEBHOOK_IPS': [],
+
+        # Behaviour
+        'CALLBACK_URL': None,
+        'CURRENCY': 'NGN',
+        'ENVIRONMENT': 'production',   # or 'test'
+        'AUTO_VERIFY_TRANSACTIONS': True,
+        'CACHE_TIMEOUT': 300,
+
+        # Logging / integration
+        'LOG_REQUESTS': False,
+        'LOG_RESPONSES': False,
+        'ENABLE_SIGNALS': True,
+        'ENABLE_MODELS': True,
     }
+
+Webhook signing secret
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Paystack signs webhook payloads with your account **secret key** — there is no
+separate webhook secret. Accordingly:
+
+- ``WEBHOOK_SECRET`` is optional and **defaults to ``SECRET_KEY``**.
+- Set ``WEBHOOK_SECRET`` only to override the signing key.
+- When no signing key can be resolved and ``WEBHOOK_SIGNATURE_REQUIRED`` is
+  ``True`` (default), incoming webhooks are **rejected** (fail closed). For local
+  development only, set ``WEBHOOK_SIGNATURE_REQUIRED = False`` to bypass.
+
+.. note::
+
+   Environment variables are the user's responsibility. The earlier
+   ``python-decouple`` examples are illustrative; install ``python-decouple``
+   (or use ``os.environ``) in your own project if you want that pattern — it is
+   no longer a dependency of paystack-django.
 
 Models Configuration
 --------------------

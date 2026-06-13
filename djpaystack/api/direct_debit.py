@@ -1,22 +1,39 @@
-from typing import Dict, Any, Optional
+"""
+Direct Debit API
+https://paystack.com/docs/api/directdebit/
+
+Note: customer-scoped Direct Debit onboarding (initialize, activation charge,
+mandate authorizations) lives on the Customer API; see ``CustomerAPI``.
+"""
+
+from typing import Any, Dict, List, Optional
+
 from .base import BaseAPI
 
 
 class DirectDebitAPI(BaseAPI):
-    """Direct Debit API"""
+    """Paystack Direct Debit API (account-level operations)."""
 
-    def activate_mandate(self, mandate_id: str) -> Dict[str, Any]:
-        """Activate a mandate"""
-        return self._post(f'mandate/{mandate_id}/activate', data={})
+    def trigger_activation_charge(self, customer_ids: List[int]) -> Dict[str, Any]:
+        """Trigger an activation charge for one or more customers' mandates.
 
-    def fetch_mandate(self, mandate_id: str) -> Dict[str, Any]:
-        """Fetch mandate"""
-        return self._get(f'mandate/{mandate_id}')
+        Args:
+            customer_ids: List of customer IDs to charge for mandate activation.
+        """
+        return self._put("directdebit/activation-charge", data={"customer_ids": customer_ids})
 
-    def list_mandates(self, per_page: int = 50, page: Optional[int] = None) -> Dict[str, Any]:
-        """List mandates"""
-        return self._paginate('mandate', per_page=per_page, page=page)
+    def list_mandate_authorizations(
+        self,
+        cursor: Optional[str] = None,
+        status: Optional[str] = None,
+        per_page: int = 50,
+    ) -> Dict[str, Any]:
+        """List direct debit mandate authorizations (cursor-paginated).
 
-    def deactivate_mandate(self, mandate_id: str) -> Dict[str, Any]:
-        """Deactivate mandate"""
-        return self._post(f'mandate/{mandate_id}/deactivate', data={})
+        Args:
+            cursor: Pagination cursor returned by a previous call.
+            status: Filter by mandate status (e.g. ``pending``, ``active``).
+            per_page: Number of records per page.
+        """
+        params = self._build_query_params(cursor=cursor, status=status, per_page=per_page)
+        return self._get("directdebit/mandate-authorizations", params=params)

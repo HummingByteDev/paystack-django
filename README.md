@@ -9,37 +9,47 @@ A comprehensive Django integration for the **Paystack Payment Gateway**. This pa
 
 ## Features
 
-- **Complete Paystack API Integration** - Access all Paystack endpoints
+- **Broad Paystack API Coverage** - Most Paystack endpoints across 25+ categories
 - **Django Models** - Pre-built models for transactions, customers, plans, and more
-- **Webhook Support** - Built-in webhook handling and verification
+- **Webhook Support** - Built-in webhook handling and HMAC-SHA512 signature verification (fails closed)
 - **Signal Support** - Django signals for payment events
-- **Async Ready** - Supports async operations
-- **Type Hints** - Fully typed for better IDE support
+- **Type Hints** - Typed public interface with a shipped `py.typed` marker
 - **Comprehensive Documentation** - Detailed docs and examples
-- **Test Coverage** - Extensive test suite
 - **Production Ready** - Used in production by multiple companies
 
 ## Supported Services
 
-The package includes complete implementations for:
+The package provides Django-native clients for the following Paystack APIs.
+"Full" means every endpoint in that category is implemented.
 
-- **Transactions** - Create, verify, and manage transactions
-- **Customers** - Create and manage customer records
-- **Plans** - Create and manage subscription plans
-- **Subscriptions** - Manage customer subscriptions
-- **Transfers** - Handle fund transfers
-- **Refunds** - Process refunds
-- **Disputes** - Manage transaction disputes
-- **Settlements** - Track settlement information
-- **Splits** - Configure payment splits
-- **Subaccounts** - Manage subaccounts
-- **Products** - Create and manage products
-- **Payment Requests** - Generate payment request links
-- **Verification** - Bank and account verification
-- **Direct Debit** - Direct debit authorization
-- **Terminal** - Terminal operations
-- **Apple Pay** - Apple Pay integration
-- **And many more...**
+| Category | Status |
+|---|---|
+| Transactions | Full |
+| Transaction Splits | Full |
+| Customers (incl. authorization & direct-debit onboarding) | Full |
+| Plans / Subscriptions | Full |
+| Products | Full |
+| Payment Pages / Payment Requests | Full |
+| Transfers / Transfer Recipients / Transfer Control | Full |
+| Refunds | Full |
+| Disputes | Full |
+| Subaccounts | Full |
+| Dedicated Virtual Accounts | Full |
+| Terminal | Full |
+| Virtual Terminal | Full |
+| Direct Debit | Full |
+| Bulk Charges | Full |
+| Charge | Full |
+| Verification (Bank) | Full |
+| Settlements | Full |
+| Integration | Full |
+| Apple Pay | Full |
+| Orders | Full |
+| Storefronts | Full |
+| Miscellaneous (banks, countries, states) | Full |
+
+> Some list endpoints currently support page-based pagination; cursor-based
+> pagination is on the roadmap. See the parity matrix for per-endpoint detail.
 
 ## Installation
 
@@ -72,7 +82,9 @@ INSTALLED_APPS = [
 PAYSTACK = {
     'SECRET_KEY': 'sk_live_your_secret_key_here',
     'PUBLIC_KEY': 'pk_live_your_public_key_here',
-    'WEBHOOK_SECRET': 'whsec_your_webhook_secret',
+    # Paystack signs webhooks with your API SECRET KEY (the same sk_... value).
+    # Set this to that key; if left unset, webhooks are REJECTED (fail closed).
+    'WEBHOOK_SECRET': 'sk_live_your_secret_key_here',
     'ENVIRONMENT': 'production',  # or 'test'
 }
 ```
@@ -134,7 +146,10 @@ PAYSTACK = {
 
     # Optional
     'BASE_URL': 'https://api.paystack.co',  # API base URL
-    'WEBHOOK_SECRET': 'your-webhook-secret',  # For webhook validation
+    # Paystack signs webhooks with your SECRET_KEY. Leave WEBHOOK_SECRET unset
+    # to use SECRET_KEY automatically; only set it to override.
+    'WEBHOOK_SECRET': None,
+    'WEBHOOK_SIGNATURE_REQUIRED': True,  # reject unsigned webhooks (fail closed)
     'CALLBACK_URL': 'https://yoursite.com/callback/',  # Callback URL
     'ENVIRONMENT': 'production',  # 'production' or 'test'
     'TIMEOUT': 30,  # Request timeout in seconds
@@ -368,7 +383,8 @@ You can also configure using environment variables:
 ```bash
 PAYSTACK_SECRET_KEY=sk_live_xxx
 PAYSTACK_PUBLIC_KEY=pk_live_xxx
-PAYSTACK_WEBHOOK_SECRET=whsec_xxx
+# Webhooks are signed with your secret key; use the same sk_... value here.
+PAYSTACK_WEBHOOK_SECRET=sk_live_xxx
 PAYSTACK_ENVIRONMENT=production
 ```
 
@@ -410,22 +426,33 @@ except PaystackAPIError as e:
 
 ## Pagination
 
-List endpoints support pagination:
+`list()` returns a **single page** (the first by default) and preserves
+Paystack's `meta` block, so you control how much you fetch:
 
 ```python
-response = client.transaction.list(
+response = client.transactions.list(
     page=1,
     per_page=50,
     from_date='2024-01-01',
     to_date='2024-12-31',
-    customer=123,
-    status='success'
+    status='success',
 )
 
-# Access data
-transactions = response['data']
-pagination = response['meta']
+transactions = response['data']      # this page's records
+meta = response['meta']              # {'page', 'pageCount', 'total', ...}
 ```
+
+To stream **every** record across all pages without loading them all into
+memory, use the lazy iterator:
+
+```python
+for txn in client.transactions.iter_all(status='success', from_date='2024-01-01'):
+    process(txn)   # one record at a time; pages fetched on demand
+```
+
+> **Upgrading from 1.0.x?** Previously `list()` eagerly fetched *all* pages.
+> It now returns one page — switch full scans to `iter_all()`. See the
+> [CHANGELOG](CHANGELOG.md) for the full list of breaking changes.
 
 ## Logging
 

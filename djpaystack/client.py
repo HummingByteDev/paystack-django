@@ -1,47 +1,51 @@
 """
 Core Paystack API client
 """
+
 import logging
+from typing import Any, Dict, List, Optional, Union
+
 import requests
-from typing import Dict, Any, Optional, Union, List
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .settings import paystack_settings
+from .api import (
+    ApplePayAPI,
+    BulkChargeAPI,
+    ChargeAPI,
+    CustomerAPI,
+    DedicatedAccountAPI,
+    DirectDebitAPI,
+    DisputeAPI,
+    IntegrationAPI,
+    MiscellaneousAPI,
+    OrderAPI,
+    PageAPI,
+    PaymentRequestAPI,
+    PlanAPI,
+    ProductAPI,
+    RefundAPI,
+    SettlementAPI,
+    SplitAPI,
+    StorefrontAPI,
+    SubaccountAPI,
+    SubscriptionAPI,
+    TerminalAPI,
+    TransactionAPI,
+    TransferAPI,
+    TransferControlAPI,
+    TransferRecipientAPI,
+    VerificationAPI,
+    VirtualTerminalAPI,
+)
 from .exceptions import (
     PaystackAPIError,
     PaystackAuthenticationError,
     PaystackNetworkError,
 )
-from .api import (
-    TransactionAPI,
-    SplitAPI,
-    TerminalAPI,
-    VirtualTerminalAPI,
-    CustomerAPI,
-    DirectDebitAPI,
-    DedicatedAccountAPI,
-    ApplePayAPI,
-    SubaccountAPI,
-    PlanAPI,
-    SubscriptionAPI,
-    ProductAPI,
-    PageAPI,
-    PaymentRequestAPI,
-    SettlementAPI,
-    TransferRecipientAPI,
-    TransferAPI,
-    TransferControlAPI,
-    BulkChargeAPI,
-    IntegrationAPI,
-    ChargeAPI,
-    DisputeAPI,
-    RefundAPI,
-    VerificationAPI,
-    MiscellaneousAPI,
-)
+from .settings import paystack_settings
 
-logger = logging.getLogger('djpaystack')
+logger = logging.getLogger("djpaystack")
 
 
 class PaystackClient:
@@ -63,8 +67,7 @@ class PaystackClient:
         self.timeout = paystack_settings.TIMEOUT
 
         if not self.secret_key:
-            raise PaystackAuthenticationError(
-                "Paystack secret key is required")
+            raise PaystackAuthenticationError("Paystack secret key is required")
 
         # Setup session with retry logic
         self.session = self._create_session()
@@ -95,39 +98,49 @@ class PaystackClient:
         self.refunds = RefundAPI(self)
         self.verification = VerificationAPI(self)
         self.miscellaneous = MiscellaneousAPI(self)
+        self.order = OrderAPI(self)
+        self.storefront = StorefrontAPI(self)
 
     def _create_session(self) -> requests.Session:
         """Create requests session with retry logic"""
         session = requests.Session()
 
+        # only retry idempotent methods automatically. POST/PUT
+        # are intentionally excluded — retrying a charge/transfer that already
+        # succeeded server-side but returned a transient error can double-charge.
         retry_strategy = Retry(
             total=paystack_settings.MAX_RETRIES,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT"]
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
+            respect_retry_after_header=True,
         )
 
         adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
 
+        # identify SDK traffic to Paystack.
+        from . import __version__
+
+        session.headers.update({"User-Agent": f"paystack-django/{__version__}"})
+
         return session
 
     def _get_headers(self) -> Dict[str, str]:
         """Get request headers with authentication"""
         return {
-            'Authorization': f'Bearer {self.secret_key}',
-            'Content-Type': 'application/json',
+            "Authorization": f"Bearer {self.secret_key}",
+            "Content-Type": "application/json",
         }
 
     def request(
         self,
         method: str,
         endpoint: str,
-        data: Optional[Union[Dict[str, Any],
-                             List[Dict[str, Any]], Any]] = None,
+        data: Optional[Union[Dict[str, Any], List[Dict[str, Any]], Any]] = None,
         params: Optional[Dict[str, Any]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Make HTTP request to Paystack API
@@ -164,7 +177,7 @@ class PaystackClient:
                 params=params,
                 timeout=self.timeout,
                 verify=paystack_settings.VERIFY_SSL,
-                **kwargs
+                **kwargs,
             )
 
             # Log response if enabled
@@ -179,16 +192,18 @@ class PaystackClient:
                 raise PaystackAPIError(
                     f"Invalid JSON response from Paystack: {response.text}",
                     status_code=response.status_code,
-                    response=response
+                    response=response,
                 )
 
-            # Check for errors
-            if not response_data.get('status'):
-                error_message = response_data.get('message', 'Unknown error')
+            # Check for errors (route auth failures to the dedicated
+            # exception so callers can distinguish them; both remain subclasses
+            # of PaystackError for backwards compatibility).
+            if not response_data.get("status"):
+                error_message = response_data.get("message", "Unknown error")
+                if response.status_code in (401, 403):
+                    raise PaystackAuthenticationError(error_message, response=response_data)
                 raise PaystackAPIError(
-                    error_message,
-                    status_code=response.status_code,
-                    response=response_data
+                    error_message, status_code=response.status_code, response=response_data
                 )
 
             return response_data
@@ -199,19 +214,25 @@ class PaystackClient:
 
     def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Make GET request"""
-        return self.request('GET', endpoint, params=params)
+        return self.request("GET", endpoint, params=params)
 
-    def post(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Make POST request"""
-        return self.request('POST', endpoint, data=data)
+    def post(
+        self,
+        endpoint: str,
+        data: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    ) -> Dict[str, Any]:
+        """Make POST request (accepts a single object or a list for bulk endpoints)"""
+        return self.request("POST", endpoint, data=data)
 
     def put(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Make PUT request"""
-        return self.request('PUT', endpoint, data=data)
+        return self.request("PUT", endpoint, data=data)
 
-    def delete(self, endpoint: str, data: Optional[Any] = None, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def delete(
+        self, endpoint: str, data: Optional[Any] = None, params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Make DELETE request (accepts optional body/params)"""
-        return self.request('DELETE', endpoint, data=data, params=params)
+        return self.request("DELETE", endpoint, data=data, params=params)
 
     def close(self):
         """Close session"""

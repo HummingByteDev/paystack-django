@@ -1,11 +1,9 @@
-
-import uuid
 import hashlib
-from typing import Optional
+import uuid
 from decimal import Decimal
 
 
-def generate_reference(prefix: str = 'PS') -> str:
+def generate_reference(prefix: str = "PS") -> str:
     """
     Generate a unique transaction reference
 
@@ -58,15 +56,12 @@ def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> boo
         True if signature is valid
     """
     import hmac
-    computed_signature = hmac.new(
-        secret.encode('utf-8'),
-        payload,
-        hashlib.sha512
-    ).hexdigest()
+
+    computed_signature = hmac.new(secret.encode("utf-8"), payload, hashlib.sha512).hexdigest()
     return hmac.compare_digest(computed_signature, signature)
 
 
-def format_amount(amount: int, currency: str = 'NGN') -> str:
+def format_amount(amount: int, currency: str = "NGN") -> str:
     """
     Format amount for display
 
@@ -78,10 +73,10 @@ def format_amount(amount: int, currency: str = 'NGN') -> str:
         Formatted amount string
     """
     symbols = {
-        'NGN': '₦',
-        'GHS': 'GH₵',
-        'ZAR': 'R',
-        'USD': '$',
+        "NGN": "₦",
+        "GHS": "GH₵",
+        "ZAR": "R",
+        "USD": "$",
     }
     symbol = symbols.get(currency, currency)
     naira_amount = kobo_to_naira(amount)

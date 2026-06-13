@@ -1,33 +1,46 @@
-
 import hashlib
 import hmac
 import logging
-from typing import Dict, Any, Callable, Optional
-from django.conf import settings
+from typing import Any, Callable, Dict, Optional
 
-from ..settings import paystack_settings
+from django.utils.dateparse import parse_datetime
+
 from ..exceptions import PaystackWebhookError
-from .events import WebhookEvent, WebhookEventData
+from ..settings import paystack_settings
 from ..signals import (
-    paystack_payment_successful,
-    paystack_payment_failed,
-    paystack_subscription_created,
-    paystack_subscription_cancelled,
-    paystack_transfer_successful,
-    paystack_transfer_failed,
-    paystack_refund_processed,
     paystack_dispute_created,
     paystack_dispute_resolved,
+    paystack_payment_failed,
+    paystack_payment_successful,
+    paystack_refund_processed,
+    paystack_subscription_cancelled,
+    paystack_subscription_created,
+    paystack_transfer_failed,
+    paystack_transfer_successful,
 )
+from .events import WebhookEvent, WebhookEventData
 
-logger = logging.getLogger('djpaystack')
+logger = logging.getLogger("djpaystack")
+
+
+def _parse_dt(value: Any) -> Optional[Any]:
+    """coerce an ISO-8601 string into a datetime for DateTimeFields.
+
+    Returns the value unchanged if it is not a parseable string (None,
+    already-a-datetime, etc.), so callers can assign it directly.
+    """
+    if isinstance(value, str):
+        parsed = parse_datetime(value)
+        if parsed is not None:
+            return parsed
+    return value
 
 
 # Paystack webhook IPs for whitelisting
 PAYSTACK_WEBHOOK_IPS = [
-    '52.31.139.75',
-    '52.49.173.169',
-    '52.214.14.220',
+    "52.31.139.75",
+    "52.49.173.169",
+    "52.214.14.220",
 ]
 
 
@@ -123,38 +136,51 @@ class WebhookHandler:
         Returns:
             True if signature is valid
         """
-        webhook_secret = paystack_settings.WEBHOOK_SECRET
+        # Paystack signs webhooks with the account SECRET_KEY; ``webhook_secret``
+        # resolves WEBHOOK_SECRET (override) or falls back to SECRET_KEY.
+        webhook_secret = paystack_settings.webhook_secret
         if not webhook_secret:
-            logger.warning("WEBHOOK_SECRET not configured, skipping signature verification")
+            # fail closed. Without a secret we cannot verify authenticity,
+            # so we must reject. A loud, explicit opt-out is provided for local
+            # development only via PAYSTACK['WEBHOOK_SIGNATURE_REQUIRED'] = False.
+            if paystack_settings.WEBHOOK_SIGNATURE_REQUIRED:
+                logger.error(
+                    "Neither WEBHOOK_SECRET nor SECRET_KEY is configured; "
+                    "rejecting webhook. Set PAYSTACK['SECRET_KEY'] (used to sign "
+                    "webhooks) or PAYSTACK['WEBHOOK_SECRET']. To bypass "
+                    "verification in development only, set "
+                    "PAYSTACK['WEBHOOK_SIGNATURE_REQUIRED'] = False."
+                )
+                return False
+            logger.warning(
+                "No webhook secret configured and WEBHOOK_SIGNATURE_REQUIRED is "
+                "False; skipping signature verification (NOT for production)."
+            )
             return True
 
         computed_signature = hmac.new(
-            webhook_secret.encode('utf-8'),
-            payload,
-            hashlib.sha512
+            webhook_secret.encode("utf-8"), payload, hashlib.sha512
         ).hexdigest()
 
         return hmac.compare_digest(computed_signature, signature)
 
     def is_duplicate_event(self, event_id: str) -> bool:
         """
-        Check if event has already been processed (for idempotency)
+        Best-effort in-process duplicate check.
+
+        when models are enabled, the authoritative race-safe
+        deduplication is performed by the webhook *view* using the database
+        unique constraint (``get_or_create``) before the handler runs. This
+        in-process set is only a fallback for deployments that disable models,
+        and is necessarily per-process (not shared across workers).
 
         Args:
             event_id: Unique event identifier
 
         Returns:
-            True if event was already processed
+            True if this process has already handled the event.
         """
-        if event_id in self._processed_events:
-            return True
-
-        # Also check database if models are enabled
-        if paystack_settings.ENABLE_MODELS:
-            from ..models import PaystackWebhookEvent
-            return PaystackWebhookEvent.objects.filter(event_id=event_id).exists()
-
-        return False
+        return event_id in self._processed_events
 
     def mark_event_processed(self, event_id: str):
         """Mark event as processed"""
@@ -192,7 +218,7 @@ class WebhookHandler:
         # Check for duplicate
         if self.is_duplicate_event(event_data.event_id):
             logger.info(f"Duplicate event detected: {event_data.event_id} - skipping")
-            return {'status': 'duplicate', 'message': 'Event already processed'}
+            return {"status": "duplicate", "message": "Event already processed"}
 
         handler = self._handlers.get(event_type)
 
@@ -220,204 +246,180 @@ class WebhookHandler:
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackTransaction
 
-            reference = data.get('reference')
+            reference = data.get("reference")
             if reference:
                 PaystackTransaction.objects.update_or_create(
                     reference=reference,
                     defaults={
-                        'amount': data.get('amount'),
-                        'currency': data.get('currency', 'NGN'),
-                        'status': 'success',
-                        'customer_email': data.get('customer', {}).get('email'),
-                        'customer_code': data.get('customer', {}).get('customer_code'),
-                        'authorization_code': data.get('authorization', {}).get('authorization_code'),
-                        'channel': data.get('channel'),
-                        'fees': data.get('fees'),
-                        'paid_at': data.get('paid_at'),
-                        'metadata': data.get('metadata'),
-                        'raw_response': data,
-                    }
+                        "amount": data.get("amount"),
+                        "currency": data.get("currency", "NGN"),
+                        "status": "success",
+                        "customer_email": data.get("customer", {}).get("email"),
+                        "customer_code": data.get("customer", {}).get("customer_code"),
+                        "authorization_code": data.get("authorization", {}).get(
+                            "authorization_code"
+                        ),
+                        "channel": data.get("channel"),
+                        "fees": data.get("fees"),
+                        "paid_at": _parse_dt(data.get("paid_at")),
+                        "metadata": data.get("metadata"),
+                        "raw_response": data,
+                    },
                 )
 
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_payment_successful.send(
-                sender=self.__class__,
-                transaction_data=data
-            )
+            paystack_payment_successful.send(sender=self.__class__, transaction_data=data)
 
     def handle_charge_failed(self, data: Dict[str, Any]):
         """Handle failed charge"""
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackTransaction
 
-            reference = data.get('reference')
+            reference = data.get("reference")
             if reference:
                 PaystackTransaction.objects.update_or_create(
                     reference=reference,
                     defaults={
-                        'amount': data.get('amount'),
-                        'currency': data.get('currency', 'NGN'),
-                        'status': 'failed',
-                        'customer_email': data.get('customer', {}).get('email'),
-                        'customer_code': data.get('customer', {}).get('customer_code'),
-                        'metadata': data.get('metadata'),
-                        'raw_response': data,
-                    }
+                        "amount": data.get("amount"),
+                        "currency": data.get("currency", "NGN"),
+                        "status": "failed",
+                        "customer_email": data.get("customer", {}).get("email"),
+                        "customer_code": data.get("customer", {}).get("customer_code"),
+                        "metadata": data.get("metadata"),
+                        "raw_response": data,
+                    },
                 )
 
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_payment_failed.send(
-                sender=self.__class__,
-                transaction_data=data
-            )
+            paystack_payment_failed.send(sender=self.__class__, transaction_data=data)
 
     def handle_subscription_create(self, data: Dict[str, Any]):
         """Handle subscription creation"""
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackSubscription
 
-            subscription_code = data.get('subscription_code')
+            subscription_code = data.get("subscription_code")
             if subscription_code:
                 PaystackSubscription.objects.update_or_create(
                     subscription_code=subscription_code,
                     defaults={
-                        'customer_code': data.get('customer', {}).get('customer_code'),
-                        'plan_code': data.get('plan', {}).get('plan_code'),
-                        'amount': data.get('amount'),
-                        'status': data.get('status', 'active'),
-                        'next_payment_date': data.get('next_payment_date'),
-                        'authorization_code': data.get('authorization', {}).get('authorization_code'),
-                        'metadata': data.get('metadata'),
-                        'raw_response': data,
-                    }
+                        "customer_code": data.get("customer", {}).get("customer_code"),
+                        "plan_code": data.get("plan", {}).get("plan_code"),
+                        "amount": data.get("amount"),
+                        "status": data.get("status", "active"),
+                        "next_payment_date": _parse_dt(data.get("next_payment_date")),
+                        "authorization_code": data.get("authorization", {}).get(
+                            "authorization_code"
+                        ),
+                        "metadata": data.get("metadata"),
+                        "raw_response": data,
+                    },
                 )
 
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_subscription_created.send(
-                sender=self.__class__,
-                subscription_data=data
-            )
+            paystack_subscription_created.send(sender=self.__class__, subscription_data=data)
 
     def handle_subscription_disable(self, data: Dict[str, Any]):
         """Handle subscription cancellation"""
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackSubscription
 
-            subscription_code = data.get('subscription_code')
+            subscription_code = data.get("subscription_code")
             if subscription_code:
-                PaystackSubscription.objects.filter(
-                    subscription_code=subscription_code
-                ).update(status='cancelled')
+                PaystackSubscription.objects.filter(subscription_code=subscription_code).update(
+                    status="cancelled"
+                )
 
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_subscription_cancelled.send(
-                sender=self.__class__,
-                subscription_data=data
-            )
+            paystack_subscription_cancelled.send(sender=self.__class__, subscription_data=data)
 
     def handle_subscription_not_renew(self, data: Dict[str, Any]):
         """Handle subscription that will not renew"""
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackSubscription
 
-            subscription_code = data.get('subscription_code')
+            subscription_code = data.get("subscription_code")
             if subscription_code:
-                PaystackSubscription.objects.filter(
-                    subscription_code=subscription_code
-                ).update(status='non-renewing')
+                PaystackSubscription.objects.filter(subscription_code=subscription_code).update(
+                    status="non-renewing"
+                )
 
     def handle_transfer_success(self, data: Dict[str, Any]):
         """Handle successful transfer"""
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackTransfer
 
-            transfer_code = data.get('transfer_code')
+            transfer_code = data.get("transfer_code")
             if transfer_code:
                 PaystackTransfer.objects.update_or_create(
                     transfer_code=transfer_code,
                     defaults={
-                        'reference': data.get('reference'),
-                        'amount': data.get('amount'),
-                        'currency': data.get('currency', 'NGN'),
-                        'status': 'success',
-                        'recipient_code': data.get('recipient', {}).get('recipient_code'),
-                        'reason': data.get('reason'),
-                        'transferred_at': data.get('transferred_at'),
-                        'metadata': data.get('metadata'),
-                        'raw_response': data,
-                    }
+                        "reference": data.get("reference"),
+                        "amount": data.get("amount"),
+                        "currency": data.get("currency", "NGN"),
+                        "status": "success",
+                        "recipient_code": data.get("recipient", {}).get("recipient_code"),
+                        "reason": data.get("reason"),
+                        "transferred_at": _parse_dt(data.get("transferred_at")),
+                        "metadata": data.get("metadata"),
+                        "raw_response": data,
+                    },
                 )
 
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_transfer_successful.send(
-                sender=self.__class__,
-                transfer_data=data
-            )
+            paystack_transfer_successful.send(sender=self.__class__, transfer_data=data)
 
     def handle_transfer_failed(self, data: Dict[str, Any]):
         """Handle failed transfer"""
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackTransfer
 
-            transfer_code = data.get('transfer_code')
+            transfer_code = data.get("transfer_code")
             if transfer_code:
                 PaystackTransfer.objects.update_or_create(
                     transfer_code=transfer_code,
                     defaults={
-                        'reference': data.get('reference'),
-                        'amount': data.get('amount'),
-                        'currency': data.get('currency', 'NGN'),
-                        'status': 'failed',
-                        'recipient_code': data.get('recipient', {}).get('recipient_code'),
-                        'reason': data.get('reason'),
-                        'metadata': data.get('metadata'),
-                        'raw_response': data,
-                    }
+                        "reference": data.get("reference"),
+                        "amount": data.get("amount"),
+                        "currency": data.get("currency", "NGN"),
+                        "status": "failed",
+                        "recipient_code": data.get("recipient", {}).get("recipient_code"),
+                        "reason": data.get("reason"),
+                        "metadata": data.get("metadata"),
+                        "raw_response": data,
+                    },
                 )
 
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_transfer_failed.send(
-                sender=self.__class__,
-                transfer_data=data
-            )
+            paystack_transfer_failed.send(sender=self.__class__, transfer_data=data)
 
     def handle_transfer_reversed(self, data: Dict[str, Any]):
         """Handle reversed transfer"""
         if paystack_settings.ENABLE_MODELS:
             from ..models import PaystackTransfer
 
-            transfer_code = data.get('transfer_code')
+            transfer_code = data.get("transfer_code")
             if transfer_code:
-                PaystackTransfer.objects.filter(
-                    transfer_code=transfer_code
-                ).update(
-                    status='failed',
-                    raw_response=data
+                # a reversed transfer is distinct from a failed one
+                # (funds were returned), so record it accurately.
+                PaystackTransfer.objects.filter(transfer_code=transfer_code).update(
+                    status="reversed", raw_response=data
                 )
 
     def handle_refund_processed(self, data: Dict[str, Any]):
         """Handle processed refund"""
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_refund_processed.send(
-                sender=self.__class__,
-                refund_data=data
-            )
+            paystack_refund_processed.send(sender=self.__class__, refund_data=data)
 
     def handle_dispute_create(self, data: Dict[str, Any]):
         """Handle dispute creation"""
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_dispute_created.send(
-                sender=self.__class__,
-                dispute_data=data
-            )
+            paystack_dispute_created.send(sender=self.__class__, dispute_data=data)
 
     def handle_dispute_resolve(self, data: Dict[str, Any]):
         """Handle dispute resolution"""
         if paystack_settings.ENABLE_SIGNALS:
-            paystack_dispute_resolved.send(
-                sender=self.__class__,
-                dispute_data=data
-            )
+            paystack_dispute_resolved.send(sender=self.__class__, dispute_data=data)
 
     def handle_dva_assign_success(self, data: Dict[str, Any]):
         """Handle successful dedicated account assignment"""

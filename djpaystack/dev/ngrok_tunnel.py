@@ -1,11 +1,11 @@
-
-import time
 import logging
 import subprocess
-import requests
+import time
 from typing import Optional
 
-logger = logging.getLogger('djpaystack.dev')
+import requests
+
+logger = logging.getLogger("djpaystack.dev")
 
 
 class NgrokTunnel:
@@ -14,7 +14,7 @@ class NgrokTunnel:
     Similar to Stripe CLI's webhook forwarding
     """
 
-    def __init__(self, port: int = 8000, region: str = 'us'):
+    def __init__(self, port: int = 8000, region: str = "us"):
         """
         Initialize ngrok tunnel
 
@@ -31,11 +31,7 @@ class NgrokTunnel:
     def _check_ngrok_installed(self):
         """Check if ngrok is installed"""
         try:
-            subprocess.run(
-                ['ngrok', 'version'],
-                capture_output=True,
-                check=True
-            )
+            subprocess.run(["ngrok", "version"], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
             raise RuntimeError(
                 "ngrok is not installed. Install it from https://ngrok.com/download\n"
@@ -57,21 +53,18 @@ class NgrokTunnel:
         """
         # Set auth token if provided
         if auth_token:
-            subprocess.run(['ngrok', 'config', 'add-authtoken', auth_token])
+            subprocess.run(["ngrok", "config", "add-authtoken", auth_token])
 
         # Build ngrok command
-        cmd = ['ngrok', 'http', str(self.port), '--region', self.region, '--log', 'stdout']
+        cmd = ["ngrok", "http", str(self.port), "--region", self.region, "--log", "stdout"]
 
         if subdomain:
-            cmd.extend(['--subdomain', subdomain])
+            cmd.extend(["--subdomain", subdomain])
 
         # Start ngrok process
         logger.info(f"Starting ngrok tunnel on port {self.port}...")
         self.process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
 
         # Wait for tunnel to be ready
@@ -91,19 +84,19 @@ class NgrokTunnel:
         """Get public URL from ngrok API"""
         for i in range(max_retries):
             try:
-                response = requests.get('http://127.0.0.1:4040/api/tunnels')
+                response = requests.get("http://127.0.0.1:4040/api/tunnels")
                 if response.status_code == 200:
                     data = response.json()
-                    tunnels = data.get('tunnels', [])
+                    tunnels = data.get("tunnels", [])
 
                     # Get HTTPS tunnel
                     for tunnel in tunnels:
-                        if tunnel.get('proto') == 'https':
-                            return tunnel.get('public_url')
+                        if tunnel.get("proto") == "https":
+                            return tunnel.get("public_url")
 
                     # Fallback to HTTP
                     if tunnels:
-                        return tunnels[0].get('public_url')
+                        return tunnels[0].get("public_url")
 
             except requests.exceptions.ConnectionError:
                 time.sleep(0.5)
@@ -145,7 +138,7 @@ def start_ngrok_tunnel(
     port: int = 8000,
     subdomain: Optional[str] = None,
     auth_token: Optional[str] = None,
-    region: str = 'us'
+    region: str = "us",
 ) -> NgrokTunnel:
     """
     Convenience function to start ngrok tunnel

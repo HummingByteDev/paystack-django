@@ -2,7 +2,9 @@
 Transactions API
 https://paystack.com/docs/api/transaction/
 """
-from typing import Dict, Any, Optional, List
+
+from typing import Any, Dict, List, Optional
+
 from .base import BaseAPI
 
 
@@ -28,7 +30,7 @@ class TransactionAPI(BaseAPI):
         subaccount: Optional[str] = None,
         transaction_charge: Optional[int] = None,
         bearer: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Initialize a transaction
@@ -65,9 +67,9 @@ class TransactionAPI(BaseAPI):
             subaccount=subaccount,
             transaction_charge=transaction_charge,
             bearer=bearer,
-            **kwargs
+            **kwargs,
         )
-        return self._post('transaction/initialize', data=data)
+        return self._post("transaction/initialize", data=data)
 
     def verify(self, reference: str) -> Dict[str, Any]:
         """
@@ -79,7 +81,7 @@ class TransactionAPI(BaseAPI):
         Returns:
             Transaction details
         """
-        return self._get(f'transaction/verify/{reference}')
+        return self._get(f"transaction/verify/{reference}")
 
     def list(
         self,
@@ -89,7 +91,7 @@ class TransactionAPI(BaseAPI):
         status: Optional[str] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
-        amount: Optional[int] = None
+        amount: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         List transactions
@@ -107,13 +109,27 @@ class TransactionAPI(BaseAPI):
             List of transactions
         """
         params = self._build_query_params(
-            customer=customer,
-            status=status,
-            from_date=from_date,
-            to_date=to_date,
-            amount=amount
+            customer=customer, status=status, from_date=from_date, to_date=to_date, amount=amount
         )
-        return self._paginate('transaction', params=params, per_page=per_page, page=page)
+        return self._paginate("transaction", params=params, per_page=per_page, page=page)
+
+    def iter_all(
+        self,
+        status: Optional[str] = None,
+        customer: Optional[int] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+        per_page: int = 50,
+    ):
+        """Lazily iterate over every transaction matching the filters.
+
+        Memory stays bounded regardless of how many records exist. Yields one
+        transaction dict at a time.
+        """
+        params = self._build_query_params(
+            customer=customer, status=status, from_date=from_date, to_date=to_date
+        )
+        return self._iterate("transaction", params=params, per_page=per_page)
 
     def fetch(self, id_or_reference: str) -> Dict[str, Any]:
         """
@@ -125,7 +141,7 @@ class TransactionAPI(BaseAPI):
         Returns:
             Transaction details
         """
-        return self._get(f'transaction/{id_or_reference}')
+        return self._get(f"transaction/{id_or_reference}")
 
     def charge_authorization(
         self,
@@ -140,7 +156,7 @@ class TransactionAPI(BaseAPI):
         transaction_charge: Optional[int] = None,
         bearer: Optional[str] = None,
         queue: Optional[bool] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Charge an authorization
@@ -173,16 +189,12 @@ class TransactionAPI(BaseAPI):
             transaction_charge=transaction_charge,
             bearer=bearer,
             queue=queue,
-            **kwargs
+            **kwargs,
         )
-        return self._post('transaction/charge_authorization', data=data)
+        return self._post("transaction/charge_authorization", data=data)
 
     def check_authorization(
-        self,
-        authorization_code: str,
-        email: str,
-        amount: int,
-        currency: Optional[str] = None
+        self, authorization_code: str, email: str, amount: int, currency: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Check if authorization is valid for amount
@@ -197,12 +209,9 @@ class TransactionAPI(BaseAPI):
             Validation response
         """
         data = self._build_query_params(
-            authorization_code=authorization_code,
-            email=email,
-            amount=amount,
-            currency=currency
+            authorization_code=authorization_code, email=email, amount=amount, currency=currency
         )
-        return self._post('transaction/check_authorization', data=data)
+        return self._post("transaction/check_authorization", data=data)
 
     def timeline(self, id_or_reference: str) -> Dict[str, Any]:
         """
@@ -214,14 +223,14 @@ class TransactionAPI(BaseAPI):
         Returns:
             Transaction timeline
         """
-        return self._get(f'transaction/timeline/{id_or_reference}')
+        return self._get(f"transaction/timeline/{id_or_reference}")
 
     def totals(
         self,
         per_page: int = 50,
         page: Optional[int] = None,
         from_date: Optional[str] = None,
-        to_date: Optional[str] = None
+        to_date: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Get transaction totals
@@ -236,12 +245,9 @@ class TransactionAPI(BaseAPI):
             Transaction totals
         """
         params = self._build_query_params(
-            perPage=per_page,
-            page=page,
-            from_date=from_date,
-            to_date=to_date
+            perPage=per_page, page=page, from_date=from_date, to_date=to_date
         )
-        return self._get('transaction/totals', params=params)
+        return self._get("transaction/totals", params=params)
 
     def export(
         self,
@@ -255,7 +261,7 @@ class TransactionAPI(BaseAPI):
         amount: Optional[int] = None,
         settled: Optional[bool] = None,
         settlement: Optional[int] = None,
-        payment_page: Optional[int] = None
+        payment_page: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Export transactions
@@ -287,9 +293,9 @@ class TransactionAPI(BaseAPI):
             amount=amount,
             settled=settled,
             settlement=settlement,
-            payment_page=payment_page
+            payment_page=payment_page,
         )
-        return self._get('transaction/export', params=params)
+        return self._get("transaction/export", params=params)
 
     def partial_debit(
         self,
@@ -298,7 +304,7 @@ class TransactionAPI(BaseAPI):
         amount: int,
         email: str,
         reference: Optional[str] = None,
-        at_least: Optional[int] = None
+        at_least: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Partial debit allows you to retrieve part of a payment from a customer
@@ -320,6 +326,6 @@ class TransactionAPI(BaseAPI):
             amount=amount,
             email=email,
             reference=reference,
-            at_least=at_least
+            at_least=at_least,
         )
-        return self._post('transaction/partial_debit', data=data)
+        return self._post("transaction/partial_debit", data=data)

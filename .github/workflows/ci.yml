@@ -39,26 +39,23 @@ jobs:
           pip install "Django~=${{ matrix.django-version }}"
           pip install -e ".[dev]"
 
+      # quality gates are now BLOCKING (no continue-on-error).
       - name: Lint with flake8
-        continue-on-error: true
         run: |
           flake8 djpaystack --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 djpaystack --count --max-complexity=10 --max-line-length=100 --statistics
+          flake8 djpaystack --count --max-complexity=12 --max-line-length=100 --extend-ignore=E203,W503 --statistics
 
       - name: Format check with black
-        continue-on-error: true
-        run: black --check --diff djpaystack
+        run: black --check --diff --line-length=100 djpaystack
 
       - name: Sort check with isort
-        continue-on-error: true
-        run: isort --check-only --diff djpaystack
+        run: isort --check-only --diff --profile=black --line-length=100 djpaystack
 
       - name: Type check with mypy
-        continue-on-error: true
-        run: mypy djpaystack --ignore-missing-imports
+        run: mypy djpaystack --ignore-missing-imports --exclude "djpaystack/tests|djpaystack/dev"
 
-      - name: Run tests with pytest
-        run: pytest --cov=djpaystack --cov-report=xml
+      - name: Run tests with pytest (coverage gate)
+        run: pytest --cov=djpaystack --cov-report=xml --cov-fail-under=50
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

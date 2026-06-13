@@ -1,93 +1,47 @@
 .. _advanced/async:
 
-Async Support
-=============
+Async Usage
+===========
 
-paystack-django supports async operations for high-performance applications.
+.. note::
 
-Using Async
------------
+   The Paystack client in paystack-django is **synchronous** (it uses
+   ``requests``). A native async client is on the roadmap. In the meantime you
+   can safely call the client from async Django views by offloading the blocking
+   call with ``asgiref.sync.sync_to_async``.
+
+Calling the client from an async view
+-------------------------------------
 
 .. code-block:: python
 
     from django.http import JsonResponse
     from django.views.decorators.http import require_http_methods
     from asgiref.sync import sync_to_async
-    from djpaystack.api.transactions import Transaction
+
+    from djpaystack import PaystackClient
+
+    client = PaystackClient()
 
     @require_http_methods(["POST"])
     async def async_checkout(request):
-        """Async payment initialization"""
-        
-        transaction = Transaction()
-        
-        # Make async API call
-        response = await sync_to_async(transaction.initialize)(
-            email=request.POST.get('email'),
-            amount=int(request.POST.get('amount')),
+        """Initialize a payment from an async view."""
+        response = await sync_to_async(client.transactions.initialize)(
+            email=request.POST["email"],
+            amount=int(request.POST["amount"]),
         )
-        
-        return JsonResponse(response['data'])
+        return JsonResponse(response["data"])
 
-With Celery
------------
+Why ``sync_to_async``?
+----------------------
 
-For background task processing:
+Calling a blocking HTTP client directly inside an async view would block the
+event loop. ``sync_to_async`` runs the call in a thread pool so the loop stays
+responsive. This is the recommended pattern until a native async client ships.
 
-.. code-block:: python
+Roadmap
+-------
 
-    from celery import shared_task
-    from djpaystack.api.transactions import Transaction
-
-    @shared_task
-    def verify_transaction(reference):
-        """Verify transaction in background"""
-        transaction = Transaction()
-        response = transaction.verify(reference)
-        
-        if response['status']:
-            # Update your models
-            pass
-        
-        return response
-
-Configure Celery connection checking to avoid issues:
-
-.. code-block:: python
-
-    # settings.py
-    CELERY_BROKER_URL = 'redis://localhost:6379'
-    CELERY_RESULT_BACKEND = 'redis://localhost:6379'
-    CELERY_ACCEPT_CONTENT = ['json']
-    CELERY_TASK_SERIALIZER = 'json'
-
-Performance Tips
-----------------
-
-1. Use connection pooling for database
-2. Cache Paystack responses when appropriate
-3. Use async for I/O operations
-4. Implement rate limiting for API calls
-5. Monitor API quotas
-
-.. code-block:: python
-
-    from django.core.cache import cache
-
-    def get_transaction_cached(reference):
-        """Get transaction with caching"""
-        cache_key = f'transaction_{reference}'
-        
-        # Try cache first
-        cached = cache.get(cache_key)
-        if cached:
-            return cached
-        
-        # Fetch from API
-        transaction = Transaction()
-        response = transaction.verify(reference)
-        
-        # Cache for 5 minutes
-        cache.set(cache_key, response, 300)
-        
-        return response
+A native ``AsyncPaystackClient`` (built on ``httpx``) is planned for a future
+major release. Until then, the ``sync_to_async`` pattern above is the supported
+way to use paystack-django in async contexts.

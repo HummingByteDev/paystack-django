@@ -20,15 +20,13 @@ paystack-django: Django Paystack Payment Integration
 
 **Features:**
 
-- **Complete Paystack API Integration** - Access all Paystack endpoints
+- **Broad Paystack API Coverage** - Clients for 25+ Paystack API categories
 - **Django Models** - Pre-built models for transactions, customers, plans, and more
-- **Webhook Support** - Built-in webhook handling and verification
+- **Webhook Support** - Built-in webhook handling and HMAC-SHA512 signature
+  verification (fails closed)
 - **Signal Support** - Django signals for payment events
-- **Async Ready** - Supports async operations
-- **Type Hints** - Fully typed for better IDE support
+- **Type Hints** - Typed public interface with a shipped ``py.typed`` marker
 - **Comprehensive Documentation** - Detailed docs and examples
-- **Test Coverage** - Extensive test suite
-- **Production Ready** - Used in production by multiple companies
 
 .. toctree::
    :maxdepth: 2
@@ -46,6 +44,7 @@ paystack-django: Django Paystack Payment Integration
    customers
    subscriptions
    webhooks
+   new_apis
 
 .. toctree::
    :maxdepth: 2
@@ -96,37 +95,34 @@ Initialize a transaction:
 
 .. code-block:: python
 
-   from djpaystack.api.transactions import Transaction
+   from djpaystack import PaystackClient
 
-   transaction = Transaction()
-   response = transaction.initialize(
+   client = PaystackClient()
+   response = client.transactions.initialize(
        email='customer@example.com',
        amount=50000,  # Amount in kobo (e.g., 500 naira)
-       reference='unique-reference-123'
+       reference='unique-reference-123',
    )
+   print(response['data']['authorization_url'])
 
 Supported Services
 ==================
 
-The package supports all major Paystack services:
+paystack-django provides clients for the following Paystack APIs. For the
+authoritative, endpoint-by-endpoint status, see the project's parity matrix.
 
-- **Transactions** - Create, verify, and manage transactions
-- **Customers** - Create and manage customer records
-- **Plans** - Create and manage subscription plans
-- **Subscriptions** - Manage customer subscriptions
-- **Transfers** - Handle fund transfers
-- **Refunds** - Process refunds
-- **Disputes** - Manage transaction disputes
-- **Settlements** - Track settlement information
-- **Splits** - Configure payment splits
-- **Subaccounts** - Manage subaccounts
-- **Products** - Create and manage products
-- **Payment Requests** - Generate payment request links
-- **Verification** - Bank and account verification
-- **Direct Debit** - Direct debit authorization
-- **Terminal** - Terminal operations
-- **Apple Pay** - Apple Pay integration
-- And many more...
+- **Transactions**, **Transaction Splits**, **Charge**
+- **Customers** (including authorization & direct-debit onboarding)
+- **Plans**, **Subscriptions**, **Products**
+- **Payment Pages**, **Payment Requests**
+- **Transfers**, **Transfer Recipients**, **Transfer Control**
+- **Refunds**, **Disputes**, **Settlements**
+- **Subaccounts**, **Dedicated Virtual Accounts**
+- **Terminal**, **Virtual Terminal**
+- **Direct Debit**, **Bulk Charges**
+- **Verification** (bank/account), **Integration**, **Apple Pay**
+- **Orders**, **Storefronts**
+- **Miscellaneous** (banks, countries, states)
 
 Resources
 =========

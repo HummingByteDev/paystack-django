@@ -22,24 +22,29 @@ class PaystackAPIError(PaystackError):
 
 class PaystackValidationError(PaystackError):
     """Raised when request data validation fails"""
+
     pass
 
 
 class PaystackAuthenticationError(PaystackError):
     """Raised when authentication with Paystack fails"""
+
     pass
 
 
 class PaystackNetworkError(PaystackError):
     """Raised when network request to Paystack fails"""
+
     pass
 
 
 class PaystackWebhookError(PaystackError):
     """Raised when webhook validation or processing fails"""
+
     pass
 
 
 class PaystackConfigurationError(PaystackError):
     """Raised when configuration is invalid or missing"""
+
     pass
